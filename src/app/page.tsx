@@ -4,13 +4,6 @@ import { ArrowUpRight, Boxes, CircleDollarSign, LogOut, PackageSearch, ReceiptTe
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/login/actions";
 
-const metrics = [
-  { label: "Ventas de hoy", value: "Q 0.00", detail: "0 transacciones", icon: CircleDollarSign },
-  { label: "Productos", value: "0", detail: "Catálogo por importar", icon: Boxes },
-  { label: "Clientes", value: "0", detail: "Directorio vacío", icon: Users },
-  { label: "Stock bajo", value: "0", detail: "Sin alertas", icon: PackageSearch },
-];
-
 const modules = [
   { title: "Nueva venta", description: "Abre una venta y agrega productos al carrito.", icon: ShoppingCart, href: "/ventas" },
   { title: "Inventario", description: "Administra existencias por sucursal.", icon: Boxes, href: "/inventario" },
@@ -23,13 +16,42 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { data: membership } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", user.id)
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+  if (!membership) redirect("/onboarding");
+
+  const organizationId = membership.organization_id;
+  const startOfToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
+  const [organizationResult, productsResult, customersResult, salesResult, stockResult] = await Promise.all([
+    supabase.from("organizations").select("name, currency_code").eq("id", organizationId).single(),
+    supabase.from("products").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
+    supabase.from("customers").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
+    supabase.from("sales").select("total").eq("organization_id", organizationId).eq("status", "completed").gte("completed_at", `${startOfToday}T00:00:00-06:00`),
+    supabase.from("inventory_levels").select("product_id", { count: "exact", head: true }).eq("organization_id", organizationId).lt("quantity", 1),
+  ]);
+
+  const sales = salesResult.data ?? [];
+  const salesTotal = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
+  const currency = organizationResult.data?.currency_code === "GTQ" ? "Q" : organizationResult.data?.currency_code ?? "GTQ";
+  const metrics = [
+    { label: "Ventas de hoy", value: `${currency} ${salesTotal.toFixed(2)}`, detail: `${sales.length} transacciones`, icon: CircleDollarSign },
+    { label: "Productos", value: String(productsResult.count ?? 0), detail: "Productos activos", icon: Boxes },
+    { label: "Clientes", value: String(customersResult.count ?? 0), detail: "Clientes activos", icon: Users },
+    { label: "Stock bajo", value: String(stockResult.count ?? 0), detail: "Requieren atención", icon: PackageSearch },
+  ];
+
   return (
     <main className="min-h-screen bg-[#f4f5f1] text-[#17251f]">
       <header className="border-b border-black/10 bg-[#163f32] text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
           <div className="flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-xl bg-[#d7f36b] font-black text-[#163f32]">S</div>
-            <div><p className="text-lg font-bold tracking-tight">STM</p><p className="text-xs text-white/60">Punto de venta</p></div>
+            <div><p className="text-lg font-bold tracking-tight">{organizationResult.data?.name ?? "STM"}</p><p className="text-xs text-white/60">Punto de venta</p></div>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="hidden max-w-48 truncate text-white/65 sm:inline">{user.email}</span>
