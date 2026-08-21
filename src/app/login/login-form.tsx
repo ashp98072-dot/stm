@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { LockKeyhole, Mail } from "lucide-react";
+import { LockKeyhole, UserRound } from "lucide-react";
 import { login, type LoginState } from "./actions";
 
 const initialState: LoginState = { message: "" };
@@ -11,10 +11,10 @@ export function LoginForm() {
   return (
     <form action={action} className="mt-8 space-y-5">
       <label className="block">
-        <span className="mb-2 block text-sm font-semibold">Correo electrónico</span>
+        <span className="mb-2 block text-sm font-semibold">Usuario o correo electrónico</span>
         <span className="flex items-center gap-3 rounded-xl border border-black/10 bg-white px-4 focus-within:border-[#3e735e] focus-within:ring-4 focus-within:ring-[#3e735e]/10">
-          <Mail size={18} className="text-[#76857d]" />
-          <input name="email" type="email" autoComplete="email" required className="h-12 w-full bg-transparent outline-none" placeholder="nombre@empresa.com" />
+          <UserRound size={18} className="text-[#76857d]" />
+          <input name="identifier" type="text" autoComplete="username" required className="h-12 w-full bg-transparent outline-none" placeholder="Mgarcia" />
         </span>
       </label>
       <label className="block">

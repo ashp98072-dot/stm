@@ -44,6 +44,9 @@ export default async function Home() {
     { label: "Clientes", value: String(customersResult.count ?? 0), detail: "Clientes activos", icon: Users },
     { label: "Stock bajo", value: String(stockResult.count ?? 0), detail: "Requieren atención", icon: PackageSearch },
   ];
+  const accountLabel = user.email?.endsWith("@stm.internal")
+    ? user.email.slice(0, -"@stm.internal".length)
+    : user.email;
 
   return (
     <main className="min-h-screen bg-[#f4f5f1] text-[#17251f]">
@@ -54,7 +57,7 @@ export default async function Home() {
             <div><p className="text-lg font-bold tracking-tight">{organizationResult.data?.name ?? "STM"}</p><p className="text-xs text-white/60">Punto de venta</p></div>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <span className="hidden max-w-48 truncate text-white/65 sm:inline">{user.email}</span>
+            <span className="hidden max-w-48 truncate text-white/65 sm:inline">{accountLabel}</span>
             <form action={logout}><button title="Cerrar sesión" className="grid size-9 cursor-pointer place-items-center rounded-full bg-white/10 transition hover:bg-white/20"><LogOut size={16} /></button></form>
           </div>
         </div>

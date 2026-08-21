@@ -18,6 +18,10 @@ Reescritura progresiva del sistema STM para Vercel y Supabase.
 
 La migración inicial incluye organizaciones, sucursales, perfiles, roles, categorías, clientes, productos, inventario, ventas, pagos y movimientos. Los campos `legacy_id` permiten asociar registros importados desde PHP/MySQL.
 
+## Usuarios internos
+
+El formulario acepta correos reales y nombres de usuario. Para crear el usuario `Mgarcia` desde Supabase Auth, registra el correo interno `mgarcia@stm.internal`; el login transforma automáticamente `Mgarcia` a ese identificador. Los nombres se normalizan a minúsculas para evitar duplicados por capitalización.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.

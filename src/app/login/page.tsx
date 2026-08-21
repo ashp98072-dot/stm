@@ -17,7 +17,7 @@ export default function LoginPage() {
           <div className="mb-10 flex items-center gap-3 lg:hidden"><div className="grid size-10 place-items-center rounded-xl bg-[#163f32] font-black text-[#d7f36b]">S</div><span className="text-xl font-bold">STM</span></div>
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Acceso seguro</p>
           <h2 className="mt-3 text-4xl font-bold tracking-[-0.04em]">Bienvenido de nuevo</h2>
-          <p className="mt-3 text-[#68766f]">Ingresa con la cuenta registrada en Supabase.</p>
+          <p className="mt-3 text-[#68766f]">Ingresa con tu usuario STM o con tu correo registrado.</p>
           <LoginForm />
           <p className="mt-7 text-center text-xs leading-5 text-[#87928c]">El acceso y los datos están protegidos por Supabase Auth y políticas RLS.</p>
         </div>
