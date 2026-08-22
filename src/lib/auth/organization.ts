@@ -17,10 +17,12 @@ export async function getOrganizationContext() {
     .maybeSingle();
   if (!membership) redirect("/onboarding");
 
-  const [{ data: organization }, { data: location }] = await Promise.all([
+  const [{ data: organization }, { data: locations }, { data: profile }] = await Promise.all([
     supabase.from("organizations").select("id, name, currency_code").eq("id", membership.organization_id).single(),
-    supabase.from("locations").select("id, name").eq("organization_id", membership.organization_id).eq("active", true).order("created_at").limit(1).single(),
+    supabase.from("locations").select("id, name").eq("organization_id", membership.organization_id).eq("active", true).order("created_at"),
+    supabase.from("profiles").select("selected_location_id").eq("id", user.id).single(),
   ]);
+  const location = locations?.find((item) => item.id === profile?.selected_location_id) ?? locations?.[0];
   if (!organization || !location) throw new Error("La empresa no tiene una sucursal activa.");
 
   return {
@@ -28,6 +30,7 @@ export async function getOrganizationContext() {
     user,
     organization,
     location,
+    locations: locations ?? [],
     role: membership.role as MembershipRole,
   };
 }
@@ -54,4 +57,8 @@ export function canManageExpenses(role: MembershipRole) {
 
 export function canManageTeam(role: MembershipRole) {
   return ["owner", "admin"].includes(role);
+}
+
+export function canManageLocations(role: MembershipRole) {
+  return ["owner", "admin", "manager"].includes(role);
 }

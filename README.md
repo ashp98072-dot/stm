@@ -34,6 +34,8 @@ La migración `20260822030000_expenses.sql` agrega categorías y gastos operativ
 
 La migración `20260822040000_team_management.sql` incorpora invitaciones y administración segura de colaboradores. El correo de la invitación debe coincidir con el usuario creado en Supabase Auth; los usuarios internos usan el formato `usuario@stm.internal`.
 
+La migración `20260822050000_location_management.sql` permite administrar sucursales y guardar una ubicación de trabajo por usuario. Las ventas, compras, gastos y ajustes de inventario usan automáticamente la sucursal seleccionada.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.

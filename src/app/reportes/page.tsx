@@ -19,11 +19,11 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
   const [{ data: sales, error }, { data: expenses }] = await Promise.all([
     context.supabase.from("sales")
       .select("id, receipt_number, subtotal, tax_total, total, completed_at, customer:customers(first_name, last_name, company_name), payments(method, amount)")
-      .eq("organization_id", context.organization.id).eq("status", "completed")
+      .eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("status", "completed")
       .gte("completed_at", `${from}T00:00:00-06:00`).lte("completed_at", `${to}T23:59:59.999-06:00`)
       .order("completed_at", { ascending: false }).limit(500),
     context.supabase.from("expenses").select("total, category:expense_categories(name)")
-      .eq("organization_id", context.organization.id).eq("status", "posted")
+      .eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("status", "posted")
       .gte("incurred_at", `${from}T00:00:00-06:00`).lte("incurred_at", `${to}T23:59:59.999-06:00`),
   ]);
   if (error) throw new Error("No se pudieron cargar los reportes.");

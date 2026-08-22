@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ArrowUpRight, Boxes, CircleDollarSign, LogOut, PackageSearch, ReceiptText, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { ArrowUpRight, Boxes, Building2, CircleDollarSign, LogOut, PackageSearch, ReceiptText, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
 import { logout } from "@/app/login/actions";
+import { getOrganizationContext } from "@/lib/auth/organization";
 
 const modules = [
   { title: "Nueva venta", description: "Abre una venta y agrega productos al carrito.", icon: ShoppingCart, href: "/ventas" },
@@ -12,35 +11,23 @@ const modules = [
   { title: "Compras", description: "Recibe mercancía y administra proveedores.", icon: Truck, href: "/compras" },
   { title: "Gastos", description: "Registra y consulta gastos operativos.", icon: WalletCards, href: "/gastos" },
   { title: "Equipo", description: "Administra colaboradores, roles e invitaciones.", icon: UserCog, href: "/equipo" },
+  { title: "Sucursales", description: "Cambia la ubicación de trabajo y administra sedes.", icon: Building2, href: "/sucursales" },
 ];
 
 export default async function Home() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: membership } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .eq("user_id", user.id)
-    .eq("active", true)
-    .limit(1)
-    .maybeSingle();
-  if (!membership) redirect("/onboarding");
-
-  const organizationId = membership.organization_id;
+  const { supabase, user, organization, location } = await getOrganizationContext();
+  const organizationId = organization.id;
   const startOfToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
-  const [organizationResult, productsResult, customersResult, salesResult, stockResult] = await Promise.all([
-    supabase.from("organizations").select("name, currency_code").eq("id", organizationId).single(),
+  const [productsResult, customersResult, salesResult, stockResult] = await Promise.all([
     supabase.from("products").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
     supabase.from("customers").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
-    supabase.from("sales").select("total").eq("organization_id", organizationId).eq("status", "completed").gte("completed_at", `${startOfToday}T00:00:00-06:00`),
-    supabase.from("inventory_levels").select("product_id", { count: "exact", head: true }).eq("organization_id", organizationId).lt("quantity", 1),
+    supabase.from("sales").select("total").eq("organization_id", organizationId).eq("location_id", location.id).eq("status", "completed").gte("completed_at", `${startOfToday}T00:00:00-06:00`),
+    supabase.from("inventory_levels").select("product_id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("location_id", location.id).lt("quantity", 1),
   ]);
 
   const sales = salesResult.data ?? [];
   const salesTotal = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
-  const currency = organizationResult.data?.currency_code === "GTQ" ? "Q" : organizationResult.data?.currency_code ?? "GTQ";
+  const currency = organization.currency_code === "GTQ" ? "Q" : organization.currency_code;
   const metrics = [
     { label: "Ventas de hoy", value: `${currency} ${salesTotal.toFixed(2)}`, detail: `${sales.length} transacciones`, icon: CircleDollarSign },
     { label: "Productos", value: String(productsResult.count ?? 0), detail: "Productos activos", icon: Boxes },
@@ -57,7 +44,7 @@ export default async function Home() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
           <div className="flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-xl bg-[#d7f36b] font-black text-[#163f32]">S</div>
-            <div><p className="text-lg font-bold tracking-tight">{organizationResult.data?.name ?? "STM"}</p><p className="text-xs text-white/60">Punto de venta</p></div>
+            <div><p className="text-lg font-bold tracking-tight">{organization.name}</p><p className="text-xs text-white/60">Punto de venta · {location.name}</p></div>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="hidden max-w-48 truncate text-white/65 sm:inline">{accountLabel}</span>

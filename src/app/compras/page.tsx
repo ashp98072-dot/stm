@@ -11,7 +11,7 @@ export default async function PurchasesPage({ searchParams }: PageProps<"/compra
   const [{ data: products }, { data: suppliers }, { data: purchases }] = await Promise.all([
     context.supabase.from("products").select("id, name, sku, cost").eq("organization_id", context.organization.id).eq("active", true).order("name"),
     context.supabase.from("suppliers").select("id, name").eq("organization_id", context.organization.id).eq("active", true).order("name"),
-    context.supabase.from("purchases").select("id, reference, total, received_at, supplier:suppliers(name)").eq("organization_id", context.organization.id).order("received_at", { ascending: false }).limit(10),
+    context.supabase.from("purchases").select("id, reference, total, received_at, supplier:suppliers(name)").eq("organization_id", context.organization.id).eq("location_id", context.location.id).order("received_at", { ascending: false }).limit(10),
   ]);
   const currency = context.organization.currency_code === "GTQ" ? "Q" : context.organization.currency_code;
 
