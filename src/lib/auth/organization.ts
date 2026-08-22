@@ -35,3 +35,7 @@ export async function getOrganizationContext() {
 export function canManageInventory(role: MembershipRole) {
   return ["owner", "admin", "manager", "inventory"].includes(role);
 }
+
+export function canManageCustomers(role: MembershipRole) {
+  return ["owner", "admin", "manager", "cashier"].includes(role);
+}
