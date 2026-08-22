@@ -16,6 +16,7 @@ const customerSchema = z.object({
   taxId: optionalText(40),
   address: optionalText(300),
   notes: optionalText(1000),
+  creditLimit: z.string().trim().transform((value) => value ? Number(value) : null).pipe(z.number().min(0).max(999999999999).nullable()),
 });
 
 function parseCustomer(formData: FormData) {
@@ -23,7 +24,7 @@ function parseCustomer(formData: FormData) {
     firstName: formData.get("firstName"), lastName: formData.get("lastName"),
     companyName: formData.get("companyName"), email: formData.get("email"),
     phone: formData.get("phone"), taxId: formData.get("taxId"),
-    address: formData.get("address"), notes: formData.get("notes"),
+    address: formData.get("address"), notes: formData.get("notes"), creditLimit: formData.get("creditLimit"),
   });
 }
 
@@ -42,6 +43,7 @@ export async function createCustomer(
     company_name: parsed.data.companyName, email: parsed.data.email,
     phone: parsed.data.phone, tax_id: parsed.data.taxId,
     address: parsed.data.address, notes: parsed.data.notes,
+    credit_limit: ["owner","admin","manager"].includes(context.role) ? parsed.data.creditLimit : null,
   });
   if (error) return { message: "No se pudo guardar el cliente." };
   revalidatePath("/");
@@ -58,12 +60,14 @@ export async function updateCustomer(formData: FormData) {
   const context = await getOrganizationContext();
   if (!canManageCustomers(context.role)) return;
 
-  await context.supabase.from("customers").update({
+  const updates = {
     first_name: parsed.data.firstName, last_name: parsed.data.lastName,
     company_name: parsed.data.companyName, email: parsed.data.email,
     phone: parsed.data.phone, tax_id: parsed.data.taxId,
     address: parsed.data.address, notes: parsed.data.notes,
-  }).eq("id", id.data).eq("organization_id", context.organization.id);
+    ...(["owner","admin","manager"].includes(context.role) ? { credit_limit: parsed.data.creditLimit } : {}),
+  };
+  await context.supabase.from("customers").update(updates).eq("id", id.data).eq("organization_id", context.organization.id);
   revalidatePath("/clientes");
 }
 

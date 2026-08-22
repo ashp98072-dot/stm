@@ -22,6 +22,7 @@ export function CustomerForm() {
         <Field label="NIT / identificación fiscal" name="taxId" />
         <Field label="Correo" name="email" type="email" />
         <Field label="Teléfono" name="phone" type="tel" />
+        <Field label="Límite de crédito" name="creditLimit" type="number" />
         <label className="md:col-span-2"><span className="mb-1.5 block text-sm font-semibold">Dirección</span><input className={customerInputClass} name="address" /></label>
         <label className="md:col-span-2 xl:col-span-3"><span className="mb-1.5 block text-sm font-semibold">Notas</span><input className={customerInputClass} name="notes" /></label>
         <button disabled={pending} className="h-11 self-end rounded-xl bg-[#d7f36b] px-5 font-bold text-[#163f32] transition hover:-translate-y-0.5 disabled:opacity-60">{pending ? "Guardando…" : "Guardar cliente"}</button>
@@ -32,5 +33,5 @@ export function CustomerForm() {
 }
 
 function Field({ label, name, type = "text", required = false }: { label: string; name: string; type?: string; required?: boolean }) {
-  return <label><span className="mb-1.5 block text-sm font-semibold">{label}</span><input className={customerInputClass} name={name} type={type} required={required} /></label>;
+  return <label><span className="mb-1.5 block text-sm font-semibold">{label}</span><input className={customerInputClass} name={name} type={type} min={type === "number" ? 0 : undefined} step={type === "number" ? ".01" : undefined} required={required} /></label>;
 }

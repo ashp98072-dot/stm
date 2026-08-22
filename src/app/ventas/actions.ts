@@ -47,6 +47,7 @@ export async function completeSale(
     const detail = error.message.toLowerCase();
     if (detail.includes("insufficient stock")) return { message: "No hay existencia suficiente para uno de los productos." };
     if (detail.includes("insufficient payment")) return { message: "El monto recibido no cubre el total." };
+    if (detail.includes("credit limit")) return { message: "La venta supera el límite de crédito disponible del cliente." };
     if (detail.includes("could not find the function")) return { message: "Falta aplicar la migración de ventas en Supabase." };
     return { message: "No se pudo completar la venta. Intenta nuevamente." };
   }

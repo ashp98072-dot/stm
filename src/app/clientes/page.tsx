@@ -12,7 +12,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/client
   const query = String((await searchParams).q ?? "").trim();
   const safeQuery = query.replace(/[,().%_]/g, " ").trim();
   let customersQuery = context.supabase.from("customers")
-    .select("id, first_name, last_name, company_name, email, phone, tax_id, address, notes, created_at")
+    .select("id, first_name, last_name, company_name, email, phone, tax_id, address, notes, credit_limit, created_at")
     .eq("organization_id", context.organization.id).eq("active", true)
     .order("created_at", { ascending: false });
   if (safeQuery) customersQuery = customersQuery.or(`first_name.ilike.%${safeQuery}%,last_name.ilike.%${safeQuery}%,company_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%,tax_id.ilike.%${safeQuery}%`);
@@ -37,7 +37,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/client
             <article key={customer.id} className="rounded-2xl border border-black/8 bg-white shadow-[0_8px_25px_rgba(26,52,42,0.04)]">
               <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
                 <div><h2 className="font-bold">{customer.first_name} {customer.last_name}</h2><p className="mt-1 text-sm text-[#68766f]">{customer.company_name || "Cliente individual"}{customer.tax_id ? ` · NIT ${customer.tax_id}` : ""}</p></div>
-                <div className="text-sm text-[#53645b] md:text-right"><p>{customer.phone || "Sin teléfono"}</p><p>{customer.email || "Sin correo"}</p></div>
+                <div className="text-sm text-[#53645b] md:text-right"><p>{customer.phone || "Sin teléfono"}</p><p>{customer.email || "Sin correo"}</p><p className="mt-1 text-xs font-bold">Crédito: {customer.credit_limit == null ? "Sin límite" : `${context.organization.currency_code === "GTQ" ? "Q" : context.organization.currency_code} ${Number(customer.credit_limit).toFixed(2)}`}</p></div>
               </div>
               {canEdit && (
                 <details className="border-t border-black/8">
@@ -52,6 +52,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/client
                     <EditField label="Teléfono" name="phone" value={customer.phone} />
                     <EditField label="Dirección" name="address" value={customer.address} />
                     <EditField label="Notas" name="notes" value={customer.notes} />
+                    <EditField label="Límite de crédito" name="creditLimit" value={customer.credit_limit == null ? null : String(customer.credit_limit)} type="number" />
                     <div className="flex items-center justify-between gap-4 md:col-span-2 xl:col-span-4"><DeactivateButton customerName={`${customer.first_name} ${customer.last_name}`.trim()} /><button className="h-10 rounded-lg bg-[#163f32] px-5 text-sm font-bold text-white">Guardar cambios</button></div>
                   </form>
                 </details>
