@@ -39,7 +39,7 @@ export default async function AlertsPage() {
         .eq("organization_id", context.organization.id),
       context.supabase
         .from("customer_account_movements")
-        .select("customer_id,type,amount")
+        .select("customer_id,type,amount,due_date")
         .eq("organization_id", context.organization.id),
       context.supabase
         .from("suppliers")
@@ -47,7 +47,7 @@ export default async function AlertsPage() {
         .eq("organization_id", context.organization.id),
       context.supabase
         .from("supplier_account_movements")
-        .select("supplier_id,type,amount")
+        .select("supplier_id,type,amount,due_date")
         .eq("organization_id", context.organization.id),
     ]);
 
@@ -55,25 +55,36 @@ export default async function AlertsPage() {
     (level) => Number(level.quantity) <= Number(level.reorder_point),
   );
   const customerBalances = new Map<string, number>();
+  const customerDueDates = new Map<string, string>();
   for (const movement of receivablesResult.data ?? []) {
     customerBalances.set(
       movement.customer_id,
       (customerBalances.get(movement.customer_id) ?? 0) +
         (movement.type === "charge" ? Number(movement.amount) : -Number(movement.amount)),
     );
+    if (movement.type === "charge" && movement.due_date) {
+      const current = customerDueDates.get(movement.customer_id);
+      if (!current || movement.due_date < current) customerDueDates.set(movement.customer_id, movement.due_date);
+    }
   }
   const supplierBalances = new Map<string, number>();
+  const supplierDueDates = new Map<string, string>();
   for (const movement of payablesResult.data ?? []) {
     supplierBalances.set(
       movement.supplier_id,
       (supplierBalances.get(movement.supplier_id) ?? 0) +
         (movement.type === "charge" ? Number(movement.amount) : -Number(movement.amount)),
     );
+    if (movement.type === "charge" && movement.due_date) {
+      const current = supplierDueDates.get(movement.supplier_id);
+      if (!current || movement.due_date < current) supplierDueDates.set(movement.supplier_id, movement.due_date);
+    }
   }
   const receivables = (customersResult.data ?? [])
     .map((customer) => ({
       ...customer,
       balance: customerBalances.get(customer.id) ?? 0,
+      dueDate: customerDueDates.get(customer.id),
       name:
         customer.company_name ||
         `${customer.first_name} ${customer.last_name}`.trim(),
@@ -84,6 +95,7 @@ export default async function AlertsPage() {
     .map((supplier) => ({
       ...supplier,
       balance: supplierBalances.get(supplier.id) ?? 0,
+      dueDate: supplierDueDates.get(supplier.id),
     }))
     .filter((supplier) => supplier.balance > 0.005)
     .sort((a, b) => b.balance - a.balance);
@@ -115,10 +127,10 @@ export default async function AlertsPage() {
             {(quotesResult.data ?? []).map((quote) => <Link href={`/cotizaciones/${quote.id}`} key={quote.id} className="flex justify-between border-b border-black/7 p-4 last:border-0"><span><strong>{quote.quote_number}</strong><small className="block text-[#75837b]">{quote.valid_until! < today ? "Vencida" : "Vence"} · {quote.valid_until}</small></span><strong>{currency} {Number(quote.total).toFixed(2)}</strong></Link>)}
           </AlertSection>
           <AlertSection title="Cuentas por cobrar" icon={HandCoins} empty="No hay saldos de clientes.">
-            {receivables.slice(0, 10).map((customer) => <Link href={`/creditos/${customer.id}`} key={customer.id} className="flex justify-between border-b border-black/7 p-4 last:border-0"><strong>{customer.name}</strong><strong className="text-amber-700">{currency} {customer.balance.toFixed(2)}</strong></Link>)}
+            {receivables.slice(0, 10).map((customer) => <Link href={`/creditos/${customer.id}`} key={customer.id} className="flex justify-between border-b border-black/7 p-4 last:border-0"><span><strong>{customer.name}</strong>{customer.dueDate && <small className={`block ${customer.dueDate < today ? "font-bold text-red-700" : "text-[#75837b]"}`}>{customer.dueDate < today ? "Vencida" : "Vence"} · {customer.dueDate}</small>}</span><strong className="text-amber-700">{currency} {customer.balance.toFixed(2)}</strong></Link>)}
           </AlertSection>
           <AlertSection title="Cuentas por pagar" icon={Landmark} empty="No hay saldos de proveedores.">
-            {payables.slice(0, 10).map((supplier) => <Link href={`/cuentas-por-pagar/${supplier.id}`} key={supplier.id} className="flex justify-between border-b border-black/7 p-4 last:border-0"><strong>{supplier.name}</strong><strong className="text-red-700">{currency} {supplier.balance.toFixed(2)}</strong></Link>)}
+            {payables.slice(0, 10).map((supplier) => <Link href={`/cuentas-por-pagar/${supplier.id}`} key={supplier.id} className="flex justify-between border-b border-black/7 p-4 last:border-0"><span><strong>{supplier.name}</strong>{supplier.dueDate && <small className={`block ${supplier.dueDate < today ? "font-bold text-red-700" : "text-[#75837b]"}`}>{supplier.dueDate < today ? "Vencida" : "Vence"} · {supplier.dueDate}</small>}</span><strong className="text-red-700">{currency} {supplier.balance.toFixed(2)}</strong></Link>)}
           </AlertSection>
         </div>
       </div>
