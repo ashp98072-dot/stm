@@ -10,14 +10,15 @@ const optional = (max: number) => z.string().trim().max(max).transform((value) =
 const supplierSchema = z.object({
   name: z.string().trim().min(2, "Ingresa el nombre del proveedor.").max(160),
   contactName: optional(120), email: optional(254), phone: optional(40), taxId: optional(40), address: optional(300),
+  creditLimit: z.string().trim().transform((value) => value ? Number(value) : null).pipe(z.number().min(0).max(999999999999).nullable()),
 });
 
 export async function createSupplier(_state: PurchaseState, formData: FormData): Promise<PurchaseState> {
-  const parsed = supplierSchema.safeParse({ name: formData.get("name"), contactName: formData.get("contactName"), email: formData.get("email"), phone: formData.get("phone"), taxId: formData.get("taxId"), address: formData.get("address") });
+  const parsed = supplierSchema.safeParse({ name: formData.get("name"), contactName: formData.get("contactName"), email: formData.get("email"), phone: formData.get("phone"), taxId: formData.get("taxId"), address: formData.get("address"), creditLimit: formData.get("creditLimit") });
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   const context = await getOrganizationContext();
   if (!canManageInventory(context.role)) return { message: "No tienes permiso para administrar proveedores." };
-  const { error } = await context.supabase.from("suppliers").insert({ organization_id: context.organization.id, name: parsed.data.name, contact_name: parsed.data.contactName, email: parsed.data.email, phone: parsed.data.phone, tax_id: parsed.data.taxId, address: parsed.data.address });
+  const { error } = await context.supabase.from("suppliers").insert({ organization_id: context.organization.id, name: parsed.data.name, contact_name: parsed.data.contactName, email: parsed.data.email, phone: parsed.data.phone, tax_id: parsed.data.taxId, address: parsed.data.address, credit_limit: parsed.data.creditLimit });
   if (error) return { message: error.code === "PGRST205" ? "Falta aplicar la migración de compras." : "No se pudo guardar el proveedor." };
   revalidatePath("/compras");
   return { message: "Proveedor creado correctamente.", success: true };
@@ -38,7 +39,7 @@ export async function receivePurchase(_state: PurchaseState, formData: FormData)
   if (!canManageInventory(context.role)) return { message: "No tienes permiso para recibir inventario." };
   if (parsed.data.paymentTerms === "credit" && !parsed.data.supplierId) return { message: "Selecciona un proveedor para comprar al crédito." };
   const { data, error } = await context.supabase.rpc("receive_purchase", { p_organization_id: context.organization.id, p_location_id: context.location.id, p_supplier_id: parsed.data.supplierId, p_reference: parsed.data.reference, p_payment_terms: parsed.data.paymentTerms, p_items: parsed.data.items });
-  if (error) return { message: error.message.toLowerCase().includes("could not find") ? "Falta aplicar la migración de compras en Supabase." : "No se pudo completar la recepción." };
+  if (error) { const detail=error.message.toLowerCase(); return { message: detail.includes("credit limit") ? "La compra supera el crédito disponible con este proveedor." : detail.includes("could not find") ? "Falta aplicar la migración de compras en Supabase." : "No se pudo completar la recepción." }; }
   revalidatePath("/"); revalidatePath("/inventario"); revalidatePath("/compras");
   redirect(`/compras?received=${data}`);
 }
