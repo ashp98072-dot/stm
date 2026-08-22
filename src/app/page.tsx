@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, HandCoins, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { getOrganizationContext } from "@/lib/auth/organization";
 
@@ -16,6 +16,7 @@ const modules = [
   { title: "Caja", description: "Abre, controla y cierra el efectivo del turno.", icon: Landmark, href: "/caja" },
   { title: "Créditos", description: "Consulta saldos pendientes y registra abonos.", icon: HandCoins, href: "/creditos" },
   { title: "Configuración", description: "Actualiza empresa, recibos y perfil personal.", icon: Settings, href: "/configuracion" },
+  { title: "Kardex", description: "Audita entradas y salidas de inventario.", icon: History, href: "/movimientos" },
 ];
 
 export default async function Home() {
@@ -26,7 +27,7 @@ export default async function Home() {
     supabase.from("products").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
     supabase.from("customers").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
     supabase.from("sales").select("total").eq("organization_id", organizationId).eq("location_id", location.id).eq("status", "completed").gte("completed_at", `${startOfToday}T00:00:00-06:00`),
-    supabase.from("inventory_levels").select("product_id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("location_id", location.id).lt("quantity", 1),
+    supabase.from("inventory_levels").select("quantity, reorder_point").eq("organization_id", organizationId).eq("location_id", location.id),
   ]);
 
   const sales = salesResult.data ?? [];
@@ -36,7 +37,7 @@ export default async function Home() {
     { label: "Ventas de hoy", value: `${currency} ${salesTotal.toFixed(2)}`, detail: `${sales.length} transacciones`, icon: CircleDollarSign },
     { label: "Productos", value: String(productsResult.count ?? 0), detail: "Productos activos", icon: Boxes },
     { label: "Clientes", value: String(customersResult.count ?? 0), detail: "Clientes activos", icon: Users },
-    { label: "Stock bajo", value: String(stockResult.count ?? 0), detail: "Requieren atención", icon: PackageSearch },
+    { label: "Stock bajo", value: String((stockResult.data ?? []).filter((level) => Number(level.quantity) <= Number(level.reorder_point)).length), detail: "Requieren atención", icon: PackageSearch },
   ];
   const accountLabel = user.email?.endsWith("@stm.internal")
     ? user.email.slice(0, -"@stm.internal".length)
