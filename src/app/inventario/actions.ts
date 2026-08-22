@@ -84,18 +84,13 @@ export async function updateStock(formData: FormData) {
   if (!parsed.success) return;
   const context = await getOrganizationContext();
   if (!canManageInventory(context.role)) return;
-  const { supabase, organization, location, user } = context;
-
-  const { data: current } = await supabase.from("inventory_levels").select("quantity").eq("organization_id", organization.id).eq("location_id", location.id).eq("product_id", parsed.data.productId).maybeSingle();
-  const previous = Number(current?.quantity ?? 0);
-  const delta = parsed.data.quantity - previous;
-  await supabase.from("inventory_levels").upsert({
-    organization_id: organization.id, location_id: location.id, product_id: parsed.data.productId,
-    quantity: parsed.data.quantity, reorder_point: parsed.data.reorderPoint,
-  }, { onConflict: "location_id,product_id" });
-  if (delta !== 0) await supabase.from("inventory_movements").insert({
-    organization_id: organization.id, location_id: location.id, product_id: parsed.data.productId,
-    quantity_delta: delta, reason: "Ajuste manual", performed_by: user.id,
+  await context.supabase.rpc("adjust_inventory_stock", {
+    p_organization_id: context.organization.id,
+    p_location_id: context.location.id,
+    p_product_id: parsed.data.productId,
+    p_quantity: parsed.data.quantity,
+    p_reorder_point: parsed.data.reorderPoint,
+    p_reason: "Ajuste manual de inventario",
   });
   revalidatePath("/");
   revalidatePath("/inventario");
