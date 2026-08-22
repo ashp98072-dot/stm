@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ArrowLeft, Boxes, Search } from "lucide-react";
 import { getOrganizationContext, canManageInventory } from "@/lib/auth/organization";
 import { ProductForm } from "./product-form";
-import { updateStock } from "./actions";
+import { updateProduct, updateStock } from "./actions";
+import { DeactivateProductButton } from "./deactivate-product-button";
 
 const compactInput = "h-9 w-24 rounded-lg border border-black/10 bg-white px-2 text-right outline-none focus:border-[#3e735e]";
+const editInput = "h-10 w-full rounded-lg border border-black/10 bg-white px-3 text-sm outline-none focus:border-[#3e735e] focus:ring-4 focus:ring-[#3e735e]/10";
 
 export default async function InventoryPage({ searchParams }: PageProps<"/inventario">) {
   const context = await getOrganizationContext();
@@ -12,7 +14,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   const safeQuery = query.replace(/[,().%_]/g, " ").trim();
   let productsQuery = context.supabase
     .from("products")
-    .select("id, name, sku, barcode, cost, price, active, category:categories(name), inventory_levels(quantity, reorder_point, location_id)")
+    .select("id, name, sku, barcode, cost, price, tax_rate, active, category:categories(name), inventory_levels(quantity, reorder_point, location_id)")
     .eq("organization_id", context.organization.id)
     .eq("active", true)
     .order("name");
@@ -51,6 +53,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
                 <p className="font-bold"><span className="mr-2 text-sm font-semibold md:hidden">Precio:</span>{currency} {Number(product.price).toFixed(2)}</p>
                 <p className={`font-bold ${quantity <= reorderPoint ? "text-amber-700" : "text-[#285645]"}`}><span className="mr-2 text-sm font-semibold text-[#17251f] md:hidden">Existencia:</span>{quantity}</p>
                 {canEdit ? <form action={updateStock} className="flex items-center gap-2"><input type="hidden" name="productId" value={product.id} /><label className="text-xs text-[#65746c]">Cant.<input className={compactInput} name="quantity" type="number" step="0.001" defaultValue={quantity} /></label><label className="text-xs text-[#65746c]">Mín.<input className={compactInput} name="reorderPoint" type="number" min="0" step="0.001" defaultValue={reorderPoint} /></label><button className="h-9 rounded-lg bg-[#163f32] px-3 text-xs font-bold text-white">Guardar</button></form> : <span className="text-sm text-[#77847d]">Solo lectura</span>}
+                {canEdit && <details className="md:col-span-5"><summary className="cursor-pointer list-none text-xs font-semibold text-[#285645] hover:underline">Editar información y precios</summary><form action={updateProduct} className="mt-3 grid gap-3 rounded-xl bg-[#f3f5f1] p-4 md:grid-cols-2 xl:grid-cols-4"><input type="hidden" name="productId" value={product.id} /><EditField label="Nombre" name="name" value={product.name} required /><EditField label="Categoría" name="category" value={category} /><EditField label="SKU" name="sku" value={product.sku} /><EditField label="Código de barras" name="barcode" value={product.barcode} /><EditField label="Costo" name="cost" value={Number(product.cost)} type="number" step="0.01" /><EditField label="Precio" name="price" value={Number(product.price)} type="number" step="0.01" /><EditField label="Impuesto %" name="taxRate" value={Number(product.tax_rate) * 100} type="number" step="0.01" /><div className="flex items-end justify-end"><button className="h-10 rounded-lg bg-[#163f32] px-4 text-sm font-bold text-white">Guardar información</button></div><div className="md:col-span-2 xl:col-span-4"><DeactivateProductButton productName={product.name} /></div></form></details>}
               </article>
             );
           })}
@@ -58,4 +61,8 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
       </div>
     </main>
   );
+}
+
+function EditField({ label, name, value, type = "text", step, required = false }: { label: string; name: string; value: string | number | null | undefined; type?: string; step?: string; required?: boolean }) {
+  return <label><span className="mb-1 block text-xs font-semibold text-[#617067]">{label}</span><input className={editInput} name={name} type={type} step={step} min={type === "number" ? 0 : undefined} defaultValue={value ?? ""} required={required} /></label>;
 }

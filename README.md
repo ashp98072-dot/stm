@@ -26,6 +26,8 @@ El formulario acepta correos reales y nombres de usuario. Para crear el usuario 
 
 Aplica en orden todos los archivos de `supabase/migrations`. La migración `20260822000000_complete_sale.sql` instala la transacción segura que registra la venta, cobra, descuenta inventario y genera el recibo en una sola operación.
 
+La migración `20260822010000_role_based_rls.sql` sustituye el acceso general por políticas RLS específicas para propietarios, administradores, gerentes, cajeros, inventario y lectores.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.

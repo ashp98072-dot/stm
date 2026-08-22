@@ -18,6 +18,7 @@ const productSchema = z.object({
   quantity: z.coerce.number(),
   reorderPoint: z.coerce.number().min(0),
 });
+const productDetailsSchema = productSchema.omit({ quantity: true, reorderPoint: true });
 
 export async function createProduct(
   _state: InventoryActionState,
@@ -98,4 +99,45 @@ export async function updateStock(formData: FormData) {
   });
   revalidatePath("/");
   revalidatePath("/inventario");
+}
+
+export async function updateProduct(formData: FormData) {
+  const id = z.uuid().safeParse(formData.get("productId"));
+  const parsed = productDetailsSchema.safeParse({
+    name: formData.get("name"), category: formData.get("category"), sku: formData.get("sku"),
+    barcode: formData.get("barcode"), cost: formData.get("cost"), price: formData.get("price"),
+    taxRate: formData.get("taxRate"),
+  });
+  if (!id.success || !parsed.success) return;
+  const context = await getOrganizationContext();
+  if (!canManageInventory(context.role)) return;
+
+  let categoryId: string | null = null;
+  if (parsed.data.category) {
+    const { data: existing } = await context.supabase.from("categories").select("id")
+      .eq("organization_id", context.organization.id).ilike("name", parsed.data.category).limit(1).maybeSingle();
+    if (existing) categoryId = existing.id;
+    else {
+      const { data: created } = await context.supabase.from("categories").insert({ organization_id: context.organization.id, name: parsed.data.category }).select("id").single();
+      categoryId = created?.id ?? null;
+    }
+  }
+  await context.supabase.from("products").update({
+    name: parsed.data.name, category_id: categoryId, sku: parsed.data.sku, barcode: parsed.data.barcode,
+    cost: parsed.data.cost, price: parsed.data.price, tax_rate: parsed.data.taxRate / 100,
+  }).eq("id", id.data).eq("organization_id", context.organization.id);
+  revalidatePath("/inventario");
+  revalidatePath("/ventas");
+}
+
+export async function deactivateProduct(formData: FormData) {
+  const id = z.uuid().safeParse(formData.get("productId"));
+  if (!id.success) return;
+  const context = await getOrganizationContext();
+  if (!canManageInventory(context.role)) return;
+  await context.supabase.from("products").update({ active: false })
+    .eq("id", id.data).eq("organization_id", context.organization.id);
+  revalidatePath("/");
+  revalidatePath("/inventario");
+  revalidatePath("/ventas");
 }
