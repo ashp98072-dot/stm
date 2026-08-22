@@ -28,6 +28,7 @@ const modules = [
   { title: "Historial de devoluciones", description: "Consulta e imprime comprobantes de reembolso.", icon: History, href: "/devoluciones/historial" },
   { title: "Proveedores", description: "Administra contactos, saldos y límites de crédito.", icon: Truck, href: "/proveedores" },
   { title: "Historial de compras", description: "Consulta e imprime recepciones de mercancía.", icon: PackageSearch, href: "/compras/historial" },
+  { title: "Valoración", description: "Consulta costo, valor de venta y margen del inventario.", icon: CircleDollarSign, href: "/inventario/valoracion" },
 ];
 
 export default async function Home() {
