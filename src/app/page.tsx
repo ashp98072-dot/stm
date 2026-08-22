@@ -27,6 +27,7 @@ const modules = [
   { title: "Devoluciones", description: "Devuelve productos y repone existencias.", icon: ArrowLeftRight, href: "/devoluciones" },
   { title: "Historial de devoluciones", description: "Consulta e imprime comprobantes de reembolso.", icon: History, href: "/devoluciones/historial" },
   { title: "Proveedores", description: "Administra contactos, saldos y límites de crédito.", icon: Truck, href: "/proveedores" },
+  { title: "Historial de compras", description: "Consulta e imprime recepciones de mercancía.", icon: PackageSearch, href: "/compras/historial" },
 ];
 
 export default async function Home() {
