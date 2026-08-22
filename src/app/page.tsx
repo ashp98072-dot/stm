@@ -29,6 +29,7 @@ const modules = [
   { title: "Proveedores", description: "Administra contactos, saldos y límites de crédito.", icon: Truck, href: "/proveedores" },
   { title: "Historial de compras", description: "Consulta e imprime recepciones de mercancía.", icon: PackageSearch, href: "/compras/historial" },
   { title: "Valoración", description: "Consulta costo, valor de venta y margen del inventario.", icon: CircleDollarSign, href: "/inventario/valoracion" },
+  { title: "Impuestos", description: "Resume débitos y créditos fiscales del período.", icon: ReceiptText, href: "/reportes/impuestos" },
 ];
 
 export default async function Home() {
