@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, FileText, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, Download, FileText, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { getOrganizationContext } from "@/lib/auth/organization";
 
@@ -20,6 +20,7 @@ const modules = [
   { title: "Cotizaciones", description: "Prepara propuestas y conviértelas en ventas.", icon: FileText, href: "/cotizaciones" },
   { title: "Cuentas por pagar", description: "Controla saldos y pagos a proveedores.", icon: Landmark, href: "/cuentas-por-pagar" },
   { title: "Auditoría", description: "Revisa anulaciones, caja y operaciones sensibles.", icon: History, href: "/auditoria" },
+  { title: "Exportaciones", description: "Descarga ventas, inventario y saldos en CSV.", icon: Download, href: "/exportaciones" },
 ];
 
 export default async function Home() {
