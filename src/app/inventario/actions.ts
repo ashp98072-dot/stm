@@ -77,10 +77,11 @@ const stockSchema = z.object({
   productId: z.uuid(),
   quantity: z.coerce.number(),
   reorderPoint: z.coerce.number().min(0),
+  reason: z.enum(["count", "damage", "shrinkage", "correction", "other"]),
 });
 
 export async function updateStock(formData: FormData) {
-  const parsed = stockSchema.safeParse({ productId: formData.get("productId"), quantity: formData.get("quantity"), reorderPoint: formData.get("reorderPoint") });
+  const parsed = stockSchema.safeParse({ productId: formData.get("productId"), quantity: formData.get("quantity"), reorderPoint: formData.get("reorderPoint"), reason: formData.get("reason") });
   if (!parsed.success) return;
   const context = await getOrganizationContext();
   if (!canManageInventory(context.role)) return;
@@ -90,7 +91,7 @@ export async function updateStock(formData: FormData) {
     p_product_id: parsed.data.productId,
     p_quantity: parsed.data.quantity,
     p_reorder_point: parsed.data.reorderPoint,
-    p_reason: "Ajuste manual de inventario",
+    p_reason: ({ count: "Conteo físico", damage: "Producto dañado", shrinkage: "Merma de inventario", correction: "Corrección de registro", other: "Otro ajuste manual" })[parsed.data.reason],
   });
   revalidatePath("/");
   revalidatePath("/inventario");
