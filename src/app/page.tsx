@@ -23,6 +23,7 @@ const modules = [
   { title: "Exportaciones", description: "Descarga ventas, inventario y saldos en CSV.", icon: Download, href: "/exportaciones" },
   { title: "Alertas", description: "Prioriza stock, cotizaciones y saldos pendientes.", icon: BellRing, href: "/alertas" },
   { title: "Antigüedad", description: "Analiza saldos vencidos y próximos a vencer.", icon: CalendarClock, href: "/antiguedad" },
+  { title: "Vencimientos", description: "Ajusta la fecha de crédito de cada documento.", icon: CalendarClock, href: "/vencimientos" },
 ];
 
 export default async function Home() {
