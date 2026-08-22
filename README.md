@@ -52,6 +52,8 @@ La migración `20260822120000_quotes.sql` agrega cotizaciones con precios congel
 
 La migración `20260822130000_supplier_payables.sql` corrige la recepción transaccional y agrega compras al crédito, saldos y pagos a proveedores.
 
+La migración `20260822140000_purchase_voids.sql` permite anular recepciones, revertir existencias y ajustar deudas de proveedor con auditoría.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
