@@ -31,15 +31,16 @@ export default async function Home() {
   const { supabase, user, organization, location } = await getOrganizationContext();
   const organizationId = organization.id;
   const startOfToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
-  const [productsResult, customersResult, salesResult, stockResult] = await Promise.all([
+  const [productsResult, customersResult, salesResult, stockResult, returnsResult] = await Promise.all([
     supabase.from("products").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
     supabase.from("customers").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
     supabase.from("sales").select("total").eq("organization_id", organizationId).eq("location_id", location.id).eq("status", "completed").gte("completed_at", `${startOfToday}T00:00:00-06:00`),
     supabase.from("inventory_levels").select("quantity, reorder_point").eq("organization_id", organizationId).eq("location_id", location.id),
+    supabase.from("sale_returns").select("total").eq("organization_id", organizationId).eq("location_id", location.id).gte("created_at", `${startOfToday}T00:00:00-06:00`),
   ]);
 
   const sales = salesResult.data ?? [];
-  const salesTotal = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
+  const salesTotal = sales.reduce((sum, sale) => sum + Number(sale.total), 0) - (returnsResult.data ?? []).reduce((sum, item) => sum + Number(item.total), 0);
   const currency = organization.currency_code === "GTQ" ? "Q" : organization.currency_code;
   const metrics = [
     { label: "Ventas de hoy", value: `${currency} ${salesTotal.toFixed(2)}`, detail: `${sales.length} transacciones`, icon: CircleDollarSign },

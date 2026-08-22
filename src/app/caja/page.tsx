@@ -13,17 +13,20 @@ export default async function CashRegisterPage({ searchParams }: PageProps<"/caj
   const { data: openSession } = await context.supabase.from("cash_register_sessions").select("id, opening_amount, opening_notes, opened_at, cash_register_movements(type, amount, reason, created_at)").eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("opened_by", context.user.id).eq("status", "open").maybeSingle();
   let cashSales = 0;
   let creditCollections = 0;
+  let cashReturns = 0;
   if (openSession) {
-    const [{ data: sales }, { data: collections }] = await Promise.all([
+    const [{ data: sales }, { data: collections }, { data: returns }] = await Promise.all([
       context.supabase.from("sales").select("payments(method, amount)").eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("cashier_id", context.user.id).eq("status", "completed").gte("completed_at", openSession.opened_at),
       context.supabase.from("customer_account_movements").select("amount").eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("created_by", context.user.id).eq("type", "payment").eq("payment_method", "cash").gte("created_at", openSession.opened_at),
+      context.supabase.from("sale_returns").select("total").eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("created_by", context.user.id).eq("refund_method", "cash").gte("created_at", openSession.opened_at),
     ]);
     cashSales = (sales ?? []).flatMap((sale) => sale.payments as Array<{ method: string; amount: string | number }> ?? []).filter((payment) => payment.method === "cash").reduce((sum, payment) => sum + Number(payment.amount), 0);
     creditCollections = (collections ?? []).reduce((sum, collection) => sum + Number(collection.amount), 0);
+    cashReturns = (returns ?? []).reduce((sum, item) => sum + Number(item.total), 0);
   }
   const movements = (openSession?.cash_register_movements ?? []) as Array<{ type: "deposit" | "withdrawal"; amount: string | number; reason: string; created_at: string }>;
   const adjustments = movements.reduce((sum, movement) => sum + (movement.type === "deposit" ? Number(movement.amount) : -Number(movement.amount)), 0);
-  const expected = Number(openSession?.opening_amount ?? 0) + cashSales + creditCollections + adjustments;
+  const expected = Number(openSession?.opening_amount ?? 0) + cashSales + creditCollections + adjustments - cashReturns;
   const { data: history } = await context.supabase.from("cash_register_sessions").select("id, opening_amount, expected_amount, closing_amount, difference, opened_at, closed_at, status").eq("organization_id", context.organization.id).eq("location_id", context.location.id).order("opened_at", { ascending: false }).limit(10);
   const notice = params.opened ? "Caja abierta correctamente." : params.closed ? "Cierre guardado correctamente." : params.movement ? "Movimiento de efectivo registrado." : "";
 

@@ -16,7 +16,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
 
   if (!allowed) return <AccessDenied organizationName={context.organization.name} />;
 
-  const [{ data: sales, error }, { data: expenses }] = await Promise.all([
+  const [{ data: sales, error }, { data: expenses }, { data: returns }] = await Promise.all([
     context.supabase.from("sales")
       .select("id, receipt_number, subtotal, tax_total, total, completed_at, customer:customers(first_name, last_name, company_name), payments(method, amount)")
       .eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("status", "completed")
@@ -25,20 +25,38 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
     context.supabase.from("expenses").select("total, category:expense_categories(name)")
       .eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("status", "posted")
       .gte("incurred_at", `${from}T00:00:00-06:00`).lte("incurred_at", `${to}T23:59:59.999-06:00`),
+    context.supabase.from("sale_returns").select("id,total,refund_method")
+      .eq("organization_id", context.organization.id).eq("location_id", context.location.id)
+      .gte("created_at", `${from}T00:00:00-06:00`).lte("created_at", `${to}T23:59:59.999-06:00`),
   ]);
   if (error) throw new Error("No se pudieron cargar los reportes.");
 
   const saleRows = sales ?? [];
-  const total = saleRows.reduce((sum, sale) => sum + Number(sale.total), 0);
+  const returnsTotal = (returns ?? []).reduce((sum, item) => sum + Number(item.total), 0);
+  const total = saleRows.reduce((sum, sale) => sum + Number(sale.total), 0) - returnsTotal;
   const taxes = saleRows.reduce((sum, sale) => sum + Number(sale.tax_total), 0);
   const average = saleRows.length ? total / saleRows.length : 0;
   const paymentTotals = new Map<string, number>();
   saleRows.forEach((sale) => ((sale.payments ?? []) as Array<{ method: string; amount: string | number }>).forEach((payment) => paymentTotals.set(payment.method, (paymentTotals.get(payment.method) ?? 0) + Number(payment.amount))));
+  (returns ?? []).forEach((item) => paymentTotals.set(item.refund_method, (paymentTotals.get(item.refund_method) ?? 0) - Number(item.total)));
 
   let saleItems: Array<{ product_name: string; quantity: string | number; line_total: string | number; unit_price: string | number; unit_cost: string | number; discount_total: string | number }> = [];
   if (saleRows.length) {
     const { data } = await context.supabase.from("sale_items").select("product_name, quantity, line_total, unit_price, unit_cost, discount_total").eq("organization_id", context.organization.id).in("sale_id", saleRows.map((sale) => sale.id));
     saleItems = data ?? [];
+  }
+  let returnedMargin = 0;
+  if (returns?.length) {
+    const { data: returnedItems } = await context.supabase.from("sale_return_items")
+      .select("amount,quantity,sale_item:sale_items(line_total,tax_total,unit_cost)")
+      .in("return_id", returns.map((item) => item.id));
+    returnedMargin = (returnedItems ?? []).reduce((sum, item) => {
+      const value = item.sale_item as { line_total?: string | number; tax_total?: string | number; unit_cost?: string | number } | Array<{ line_total?: string | number; tax_total?: string | number; unit_cost?: string | number }> | null;
+      const line = Array.isArray(value) ? value[0] : value;
+      const lineTotal = Number(line?.line_total ?? 0);
+      const revenueWithoutTax = lineTotal ? Number(item.amount) * (lineTotal - Number(line?.tax_total ?? 0)) / lineTotal : Number(item.amount);
+      return sum + revenueWithoutTax - Number(line?.unit_cost ?? 0) * Number(item.quantity);
+    }, 0);
   }
   const productTotals = new Map<string, { quantity: number; total: number }>();
   saleItems.forEach((item) => {
@@ -46,7 +64,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
     productTotals.set(item.product_name, { quantity: current.quantity + Number(item.quantity), total: current.total + Number(item.line_total) });
   });
   const topProducts = [...productTotals.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
-  const grossProfit = saleItems.reduce((sum, item) => sum + (Number(item.unit_price) - Number(item.unit_cost)) * Number(item.quantity) - Number(item.discount_total), 0);
+  const grossProfit = saleItems.reduce((sum, item) => sum + (Number(item.unit_price) - Number(item.unit_cost)) * Number(item.quantity) - Number(item.discount_total), 0) - returnedMargin;
   const expenseRows = expenses ?? [];
   const expenseTotal = expenseRows.reduce((sum, expense) => sum + Number(expense.total), 0);
   const operatingResult = grossProfit - expenseTotal;
@@ -59,7 +77,8 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
 
   const metrics = [
     { label: "Ventas netas", value: `${currency} ${total.toFixed(2)}`, detail: `${saleRows.length} transacciones`, icon: ChartNoAxesCombined },
-    { label: "Ticket promedio", value: `${currency} ${average.toFixed(2)}`, detail: "Por transacción", icon: ReceiptText },
+    { label: "Ticket promedio", value: `${currency} ${average.toFixed(2)}`, detail: "Neto por transacción", icon: ReceiptText },
+    { label: "Devoluciones", value: `${currency} ${returnsTotal.toFixed(2)}`, detail: `${returns?.length ?? 0} operaciones`, icon: TrendingDown },
     { label: "Impuestos", value: `${currency} ${taxes.toFixed(2)}`, detail: "Total recaudado", icon: Banknote },
     { label: "Unidades vendidas", value: saleItems.reduce((sum, item) => sum + Number(item.quantity), 0).toFixed(3).replace(/\.000$/, ""), detail: `${productTotals.size} productos`, icon: ShoppingBag },
     { label: "Utilidad bruta", value: `${currency} ${grossProfit.toFixed(2)}`, detail: "Ventas menos costo", icon: TrendingUp },
