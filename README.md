@@ -32,6 +32,8 @@ La migración `20260822020000_suppliers_and_purchases.sql` crea proveedores, com
 
 La migración `20260822030000_expenses.sql` agrega categorías y gastos operativos con impuestos, métodos de pago, estados auditables y políticas por rol.
 
+La migración `20260822040000_team_management.sql` incorpora invitaciones y administración segura de colaboradores. El correo de la invitación debe coincidir con el usuario creado en Supabase Auth; los usuarios internos usan el formato `usuario@stm.internal`.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
