@@ -35,9 +35,9 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
   const paymentTotals = new Map<string, number>();
   saleRows.forEach((sale) => ((sale.payments ?? []) as Array<{ method: string; amount: string | number }>).forEach((payment) => paymentTotals.set(payment.method, (paymentTotals.get(payment.method) ?? 0) + Number(payment.amount))));
 
-  let saleItems: Array<{ product_name: string; quantity: string | number; line_total: string | number; unit_price: string | number; unit_cost: string | number }> = [];
+  let saleItems: Array<{ product_name: string; quantity: string | number; line_total: string | number; unit_price: string | number; unit_cost: string | number; discount_total: string | number }> = [];
   if (saleRows.length) {
-    const { data } = await context.supabase.from("sale_items").select("product_name, quantity, line_total, unit_price, unit_cost").eq("organization_id", context.organization.id).in("sale_id", saleRows.map((sale) => sale.id));
+    const { data } = await context.supabase.from("sale_items").select("product_name, quantity, line_total, unit_price, unit_cost, discount_total").eq("organization_id", context.organization.id).in("sale_id", saleRows.map((sale) => sale.id));
     saleItems = data ?? [];
   }
   const productTotals = new Map<string, { quantity: number; total: number }>();
@@ -46,7 +46,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
     productTotals.set(item.product_name, { quantity: current.quantity + Number(item.quantity), total: current.total + Number(item.line_total) });
   });
   const topProducts = [...productTotals.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
-  const grossProfit = saleItems.reduce((sum, item) => sum + (Number(item.unit_price) - Number(item.unit_cost)) * Number(item.quantity), 0);
+  const grossProfit = saleItems.reduce((sum, item) => sum + (Number(item.unit_price) - Number(item.unit_cost)) * Number(item.quantity) - Number(item.discount_total), 0);
   const expenseRows = expenses ?? [];
   const expenseTotal = expenseRows.reduce((sum, expense) => sum + Number(expense.total), 0);
   const operatingResult = grossProfit - expenseTotal;

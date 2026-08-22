@@ -42,6 +42,8 @@ La migración `20260822070000_sale_voids.sql` permite anular ventas completadas,
 
 La migración `20260822080000_cash_register.sql` agrega sesiones de caja por cajero y sucursal, movimientos manuales, cálculo del efectivo esperado y diferencias de cierre.
 
+La migración `20260822090000_sale_discounts.sql` agrega descuentos porcentuales o fijos, distribuidos entre las líneas para recalcular correctamente impuestos, utilidad y recibos.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.

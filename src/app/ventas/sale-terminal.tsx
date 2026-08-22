@@ -14,6 +14,8 @@ export function SaleTerminal({ products, customers, currency }: { products: Prod
   const [query, setQuery] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [received, setReceived] = useState("");
+  const [discountType, setDiscountType] = useState<"none" | "percent" | "fixed">("none");
+  const [discountValue, setDiscountValue] = useState("");
   const [state, action, pending] = useActionState(completeSale, initialState);
 
   const filtered = useMemo(() => {
@@ -28,8 +30,10 @@ export function SaleTerminal({ products, customers, currency }: { products: Prod
   });
   const changeQuantity = (id: string, delta: number) => setCart((current) => current.map((item) => item.id === id ? { ...item, cartQuantity: Math.max(1, Math.min(item.cartQuantity + delta, item.quantity)) } : item));
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
-  const tax = cart.reduce((sum, item) => sum + item.price * item.cartQuantity * item.taxRate, 0);
-  const total = subtotal + tax;
+  const requestedDiscount = discountType === "percent" ? subtotal * Math.min(100, Number(discountValue) || 0) / 100 : discountType === "fixed" ? Number(discountValue) || 0 : 0;
+  const discount = Math.min(subtotal, requestedDiscount);
+  const tax = cart.reduce((sum, item) => { const base = item.price * item.cartQuantity; const lineDiscount = subtotal ? base * discount / subtotal : 0; return sum + (base - lineDiscount) * item.taxRate; }, 0);
+  const total = subtotal - discount + tax;
   const change = paymentMethod === "cash" && received ? Math.max(0, Number(received) - total) : 0;
 
   return (
@@ -55,11 +59,13 @@ export function SaleTerminal({ products, customers, currency }: { products: Prod
         </div>
         <form action={action} className="space-y-4 border-t border-black/8 p-5">
           <input type="hidden" name="items" value={JSON.stringify(cart.map((item) => ({ product_id: item.id, quantity: item.cartQuantity })))} />
+          <input type="hidden" name="discountType" value={discountType} />
           <label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#617067]">Cliente</span><select name="customerId" className="h-11 w-full rounded-xl border border-black/10 bg-white px-3 outline-none"><option value="">Consumidor final</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}{customer.taxId ? ` · ${customer.taxId}` : ""}</option>)}</select></label>
           <div className="grid grid-cols-2 gap-3"><label><span className="mb-1.5 block text-xs font-semibold text-[#617067]">Método</span><select name="paymentMethod" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="h-11 w-full rounded-xl border border-black/10 bg-white px-3"><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option><option value="store_credit">Crédito tienda</option><option value="other">Otro</option></select></label><label><span className="mb-1.5 block text-xs font-semibold text-[#617067]">Recibido</span><input name="amountReceived" type="number" min="0" step="0.01" value={received} onChange={(event) => setReceived(event.target.value)} disabled={paymentMethod !== "cash"} className="h-11 w-full rounded-xl border border-black/10 px-3 disabled:bg-[#eef0ec]" placeholder={total.toFixed(2)} /></label></div>
-          <div className="space-y-2 border-t border-dashed border-black/15 pt-4 text-sm"><div className="flex justify-between text-[#65746c]"><span>Subtotal</span><span>{currency} {subtotal.toFixed(2)}</span></div><div className="flex justify-between text-[#65746c]"><span>Impuestos</span><span>{currency} {tax.toFixed(2)}</span></div><div className="flex justify-between text-xl font-bold"><span>Total</span><span>{currency} {total.toFixed(2)}</span></div>{change > 0 && <div className="flex justify-between font-bold text-[#39705b]"><span>Cambio</span><span>{currency} {change.toFixed(2)}</span></div>}</div>
+          <div className="grid grid-cols-2 gap-3"><label><span className="mb-1.5 block text-xs font-semibold text-[#617067]">Descuento</span><select value={discountType} onChange={(event) => { setDiscountType(event.target.value as typeof discountType); if (event.target.value === "none") setDiscountValue(""); }} className="h-11 w-full rounded-xl border border-black/10 bg-white px-3"><option value="none">Sin descuento</option><option value="percent">Porcentaje</option><option value="fixed">Monto fijo</option></select></label><label><span className="mb-1.5 block text-xs font-semibold text-[#617067]">Valor</span><input name="discountValue" type="number" min="0" max={discountType === "percent" ? 100 : undefined} step="0.01" value={discountValue} onChange={(event) => setDiscountValue(event.target.value)} disabled={discountType === "none"} className="h-11 w-full rounded-xl border border-black/10 px-3 disabled:bg-[#eef0ec]" placeholder={discountType === "percent" ? "%" : currency} /></label></div>
+          <div className="space-y-2 border-t border-dashed border-black/15 pt-4 text-sm"><div className="flex justify-between text-[#65746c]"><span>Subtotal</span><span>{currency} {subtotal.toFixed(2)}</span></div>{discount > 0 && <div className="flex justify-between font-semibold text-emerald-700"><span>Descuento</span><span>− {currency} {discount.toFixed(2)}</span></div>}<div className="flex justify-between text-[#65746c]"><span>Impuestos</span><span>{currency} {tax.toFixed(2)}</span></div><div className="flex justify-between text-xl font-bold"><span>Total</span><span>{currency} {total.toFixed(2)}</span></div>{change > 0 && <div className="flex justify-between font-bold text-[#39705b]"><span>Cambio</span><span>{currency} {change.toFixed(2)}</span></div>}</div>
           {state.message && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{state.message}</p>}
-          <button disabled={pending || !cart.length} className="h-12 w-full rounded-xl bg-[#d7f36b] font-bold text-[#163f32] transition hover:-translate-y-0.5 disabled:opacity-50">{pending ? "Procesando…" : `Cobrar ${currency} ${total.toFixed(2)}`}</button>
+          <button disabled={pending || !cart.length || discount >= subtotal} className="h-12 w-full rounded-xl bg-[#d7f36b] font-bold text-[#163f32] transition hover:-translate-y-0.5 disabled:opacity-50">{pending ? "Procesando…" : `Cobrar ${currency} ${total.toFixed(2)}`}</button>
         </form>
       </aside>
     </div>
