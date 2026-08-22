@@ -39,3 +39,7 @@ export function canManageInventory(role: MembershipRole) {
 export function canManageCustomers(role: MembershipRole) {
   return ["owner", "admin", "manager", "cashier"].includes(role);
 }
+
+export function canCreateSales(role: MembershipRole) {
+  return ["owner", "admin", "manager", "cashier"].includes(role);
+}

@@ -1,0 +1,47 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { canCreateSales, getOrganizationContext } from "@/lib/auth/organization";
+
+export type SaleActionState = { message: string };
+
+const saleSchema = z.object({
+  customerId: z.string().transform((value) => value || null).pipe(z.uuid().nullable()),
+  paymentMethod: z.enum(["cash", "card", "transfer", "store_credit", "other"]),
+  amountReceived: z.string().transform((value) => value ? Number(value) : null).pipe(z.number().nonnegative().nullable()),
+  items: z.string().transform((value, context) => {
+    try { return JSON.parse(value) as unknown; }
+    catch { context.addIssue({ code: "custom", message: "El carrito no es válido." }); return z.NEVER; }
+  }).pipe(z.array(z.object({ product_id: z.uuid(), quantity: z.number().positive() })).min(1, "Agrega al menos un producto.")),
+});
+
+export async function completeSale(
+  _state: SaleActionState,
+  formData: FormData,
+): Promise<SaleActionState> {
+  const parsed = saleSchema.safeParse({
+    customerId: formData.get("customerId"), paymentMethod: formData.get("paymentMethod"),
+    amountReceived: formData.get("amountReceived"), items: formData.get("items"),
+  });
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Datos de venta inválidos." };
+
+  const context = await getOrganizationContext();
+  if (!canCreateSales(context.role)) return { message: "No tienes permiso para realizar ventas." };
+  const { data, error } = await context.supabase.rpc("complete_sale", {
+    p_organization_id: context.organization.id,
+    p_location_id: context.location.id,
+    p_customer_id: parsed.data.customerId,
+    p_items: parsed.data.items,
+    p_payment_method: parsed.data.paymentMethod,
+    p_amount_received: parsed.data.amountReceived,
+  });
+  if (error) {
+    const detail = error.message.toLowerCase();
+    if (detail.includes("insufficient stock")) return { message: "No hay existencia suficiente para uno de los productos." };
+    if (detail.includes("insufficient payment")) return { message: "El monto recibido no cubre el total." };
+    if (detail.includes("could not find the function")) return { message: "Falta aplicar la migración de ventas en Supabase." };
+    return { message: "No se pudo completar la venta. Intenta nuevamente." };
+  }
+  redirect(`/ventas/recibo/${data}`);
+}

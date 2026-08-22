@@ -22,6 +22,10 @@ La migración inicial incluye organizaciones, sucursales, perfiles, roles, categ
 
 El formulario acepta correos reales y nombres de usuario. Para crear el usuario `Mgarcia` desde Supabase Auth, registra el correo interno `mgarcia@stm.internal`; el login transforma automáticamente `Mgarcia` a ese identificador. Los nombres se normalizan a minúsculas para evitar duplicados por capitalización.
 
+## Migraciones remotas
+
+Aplica en orden todos los archivos de `supabase/migrations`. La migración `20260822000000_complete_sale.sql` instala la transacción segura que registra la venta, cobra, descuenta inventario y genera el recibo en una sola operación.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
