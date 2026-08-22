@@ -19,6 +19,7 @@ const modules = [
   { title: "Kardex", description: "Audita entradas y salidas de inventario.", icon: History, href: "/movimientos" },
   { title: "Cotizaciones", description: "Prepara propuestas y conviértelas en ventas.", icon: FileText, href: "/cotizaciones" },
   { title: "Cuentas por pagar", description: "Controla saldos y pagos a proveedores.", icon: Landmark, href: "/cuentas-por-pagar" },
+  { title: "Auditoría", description: "Revisa anulaciones, caja y operaciones sensibles.", icon: History, href: "/auditoria" },
 ];
 
 export default async function Home() {
