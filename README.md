@@ -38,6 +38,8 @@ La migración `20260822050000_location_management.sql` permite administrar sucur
 
 La migración `20260822060000_inventory_transfers.sql` registra transferencias atómicas entre sucursales, valida existencias y crea movimientos de salida y entrada para auditoría.
 
+La migración `20260822070000_sale_voids.sql` permite anular ventas completadas, restaura las existencias en la sucursal original y conserva el motivo y el usuario responsable.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
