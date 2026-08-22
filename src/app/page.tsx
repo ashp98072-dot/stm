@@ -18,6 +18,7 @@ const modules = [
   { title: "Configuración", description: "Actualiza empresa, recibos y perfil personal.", icon: Settings, href: "/configuracion" },
   { title: "Kardex", description: "Audita entradas y salidas de inventario.", icon: History, href: "/movimientos" },
   { title: "Cotizaciones", description: "Prepara propuestas y conviértelas en ventas.", icon: FileText, href: "/cotizaciones" },
+  { title: "Cuentas por pagar", description: "Controla saldos y pagos a proveedores.", icon: Landmark, href: "/cuentas-por-pagar" },
 ];
 
 export default async function Home() {

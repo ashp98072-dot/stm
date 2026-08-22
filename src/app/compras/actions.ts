@@ -26,16 +26,18 @@ export async function createSupplier(_state: PurchaseState, formData: FormData):
 const purchaseSchema = z.object({
   supplierId: z.string().transform((value) => value || null).pipe(z.uuid().nullable()),
   reference: z.string().trim().max(100),
+  paymentTerms: z.enum(["cash", "credit"]),
   items: z.string().transform((value, context) => { try { return JSON.parse(value) as unknown; } catch { context.addIssue({ code: "custom", message: "La recepción no es válida." }); return z.NEVER; } })
     .pipe(z.array(z.object({ product_id: z.uuid(), quantity: z.number().positive(), unit_cost: z.number().nonnegative() })).min(1)),
 });
 
 export async function receivePurchase(_state: PurchaseState, formData: FormData): Promise<PurchaseState> {
-  const parsed = purchaseSchema.safeParse({ supplierId: formData.get("supplierId"), reference: formData.get("reference"), items: formData.get("items") });
+  const parsed = purchaseSchema.safeParse({ supplierId: formData.get("supplierId"), reference: formData.get("reference"), paymentTerms: formData.get("paymentTerms"), items: formData.get("items") });
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Recepción inválida." };
   const context = await getOrganizationContext();
   if (!canManageInventory(context.role)) return { message: "No tienes permiso para recibir inventario." };
-  const { data, error } = await context.supabase.rpc("receive_purchase", { p_organization_id: context.organization.id, p_location_id: context.location.id, p_supplier_id: parsed.data.supplierId, p_reference: parsed.data.reference, p_items: parsed.data.items });
+  if (parsed.data.paymentTerms === "credit" && !parsed.data.supplierId) return { message: "Selecciona un proveedor para comprar al crédito." };
+  const { data, error } = await context.supabase.rpc("receive_purchase", { p_organization_id: context.organization.id, p_location_id: context.location.id, p_supplier_id: parsed.data.supplierId, p_reference: parsed.data.reference, p_payment_terms: parsed.data.paymentTerms, p_items: parsed.data.items });
   if (error) return { message: error.message.toLowerCase().includes("could not find") ? "Falta aplicar la migración de compras en Supabase." : "No se pudo completar la recepción." };
   revalidatePath("/"); revalidatePath("/inventario"); revalidatePath("/compras");
   redirect(`/compras?received=${data}`);

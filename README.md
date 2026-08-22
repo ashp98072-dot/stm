@@ -50,6 +50,8 @@ La migración `20260822110000_organization_settings.sql` agrega datos fiscales y
 
 La migración `20260822120000_quotes.sql` agrega cotizaciones con precios congelados, vigencia, impresión y conversión directa a venta.
 
+La migración `20260822130000_supplier_payables.sql` corrige la recepción transaccional y agrega compras al crédito, saldos y pagos a proveedores.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
