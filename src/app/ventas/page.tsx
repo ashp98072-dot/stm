@@ -7,13 +7,14 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   const context = await getOrganizationContext();
   const quoteId = typeof (await searchParams).quote === "string" ? (await searchParams).quote as string : "";
   const allowed = canCreateSales(context.role);
-  const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }] = await Promise.all([
+  const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }, { data: creditMovements }] = await Promise.all([
     context.supabase.from("products")
       .select("id, name, sku, barcode, price, tax_rate, track_inventory, inventory_levels(quantity, location_id)")
       .eq("organization_id", context.organization.id).eq("active", true).order("name"),
-    context.supabase.from("customers").select("id, first_name, last_name, company_name, tax_id")
+    context.supabase.from("customers").select("id, first_name, last_name, company_name, tax_id, credit_limit")
       .eq("organization_id", context.organization.id).eq("active", true).order("first_name"),
     context.supabase.from("sales").select("id, receipt_number, status, total, completed_at").eq("organization_id", context.organization.id).eq("location_id", context.location.id).in("status", ["completed", "voided"]).order("completed_at", { ascending: false }).limit(10),
+    context.supabase.from("customer_account_movements").select("customer_id,type,amount").eq("organization_id", context.organization.id),
   ]);
   if (productsError) throw new Error("No se pudo cargar el catálogo de venta.");
 
@@ -26,10 +27,13 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
       quantity: product.track_inventory ? Number(level?.quantity ?? 0) : 999999,
     };
   });
+  const creditBalances = new Map<string, number>();
+  (creditMovements ?? []).forEach((movement) => creditBalances.set(movement.customer_id, (creditBalances.get(movement.customer_id) ?? 0) + (movement.type === "charge" ? Number(movement.amount) : -Number(movement.amount))));
   const customers = (rawCustomers ?? []).map((customer) => ({
     id: customer.id,
     name: customer.company_name || `${customer.first_name} ${customer.last_name}`.trim(),
     taxId: customer.tax_id,
+    availableCredit: customer.credit_limit == null ? null : Math.max(0, Number(customer.credit_limit) - (creditBalances.get(customer.id) ?? 0)),
   }));
   const currency = context.organization.currency_code === "GTQ" ? "Q" : context.organization.currency_code;
   const { data: quote } = quoteId ? await context.supabase.from("quotes").select("id, customer_id, status, quote_items(product_id, quantity)").eq("id", quoteId).eq("organization_id", context.organization.id).eq("status", "draft").maybeSingle() : { data: null };

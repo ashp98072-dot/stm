@@ -19,6 +19,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/client
   const { data: customers, error } = await customersQuery;
   if (error) throw new Error("No se pudo cargar el directorio de clientes.");
   const canEdit = canManageCustomers(context.role);
+  const canManageCredit = ["owner", "admin", "manager"].includes(context.role);
 
   return (
     <main className="min-h-screen bg-[#f4f5f1] text-[#17251f]">
@@ -28,7 +29,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/client
           <div><p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Personas</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Clientes</h1><p className="mt-2 text-[#68766f]">{customers?.length ?? 0} clientes activos</p></div>
           <form className="flex h-11 min-w-72 items-center gap-2 rounded-xl border border-black/10 bg-white px-3"><Search size={18} className="text-[#75827b]" /><input name="q" defaultValue={query} className="w-full bg-transparent outline-none" placeholder="Nombre, teléfono, NIT…" /></form>
         </div>
-        {canEdit && <div className="mb-6"><CustomerForm /></div>}
+        {canEdit && <div className="mb-6"><CustomerForm canManageCredit={canManageCredit} /></div>}
 
         <section className="space-y-3">
           {!customers?.length ? (
@@ -52,7 +53,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/client
                     <EditField label="Teléfono" name="phone" value={customer.phone} />
                     <EditField label="Dirección" name="address" value={customer.address} />
                     <EditField label="Notas" name="notes" value={customer.notes} />
-                    <EditField label="Límite de crédito" name="creditLimit" value={customer.credit_limit == null ? null : String(customer.credit_limit)} type="number" />
+                    {canManageCredit && <EditField label="Límite de crédito" name="creditLimit" value={customer.credit_limit == null ? null : String(customer.credit_limit)} type="number" />}
                     <div className="flex items-center justify-between gap-4 md:col-span-2 xl:col-span-4"><DeactivateButton customerName={`${customer.first_name} ${customer.last_name}`.trim()} /><button className="h-10 rounded-lg bg-[#163f32] px-5 text-sm font-bold text-white">Guardar cambios</button></div>
                   </form>
                 </details>

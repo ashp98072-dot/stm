@@ -7,7 +7,7 @@ import { createCustomer, type CustomerActionState } from "./actions";
 const initialState: CustomerActionState = { message: "" };
 export const customerInputClass = "h-11 w-full rounded-xl border border-black/10 bg-white px-3 outline-none focus:border-[#3e735e] focus:ring-4 focus:ring-[#3e735e]/10";
 
-export function CustomerForm() {
+export function CustomerForm({ canManageCredit }: { canManageCredit: boolean }) {
   const [state, action, pending] = useActionState(createCustomer, initialState);
   return (
     <details className="group rounded-2xl border border-black/8 bg-white shadow-[0_12px_35px_rgba(26,52,42,0.05)]">
@@ -22,7 +22,7 @@ export function CustomerForm() {
         <Field label="NIT / identificación fiscal" name="taxId" />
         <Field label="Correo" name="email" type="email" />
         <Field label="Teléfono" name="phone" type="tel" />
-        <Field label="Límite de crédito" name="creditLimit" type="number" />
+        {canManageCredit && <Field label="Límite de crédito" name="creditLimit" type="number" />}
         <label className="md:col-span-2"><span className="mb-1.5 block text-sm font-semibold">Dirección</span><input className={customerInputClass} name="address" /></label>
         <label className="md:col-span-2 xl:col-span-3"><span className="mb-1.5 block text-sm font-semibold">Notas</span><input className={customerInputClass} name="notes" /></label>
         <button disabled={pending} className="h-11 self-end rounded-xl bg-[#d7f36b] px-5 font-bold text-[#163f32] transition hover:-translate-y-0.5 disabled:opacity-60">{pending ? "Guardando…" : "Guardar cliente"}</button>
