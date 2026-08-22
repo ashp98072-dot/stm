@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Boxes, Building2, CircleDollarSign, LogOut, PackageSearch, ReceiptText, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, LogOut, PackageSearch, ReceiptText, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { getOrganizationContext } from "@/lib/auth/organization";
 
@@ -12,6 +12,7 @@ const modules = [
   { title: "Gastos", description: "Registra y consulta gastos operativos.", icon: WalletCards, href: "/gastos" },
   { title: "Equipo", description: "Administra colaboradores, roles e invitaciones.", icon: UserCog, href: "/equipo" },
   { title: "Sucursales", description: "Cambia la ubicación de trabajo y administra sedes.", icon: Building2, href: "/sucursales" },
+  { title: "Transferencias", description: "Mueve existencias de forma segura entre sucursales.", icon: ArrowLeftRight, href: "/transferencias" },
 ];
 
 export default async function Home() {

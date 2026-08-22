@@ -36,6 +36,8 @@ La migración `20260822040000_team_management.sql` incorpora invitaciones y admi
 
 La migración `20260822050000_location_management.sql` permite administrar sucursales y guardar una ubicación de trabajo por usuario. Las ventas, compras, gastos y ajustes de inventario usan automáticamente la sucursal seleccionada.
 
+La migración `20260822060000_inventory_transfers.sql` registra transferencias atómicas entre sucursales, valida existencias y crea movimientos de salida y entrada para auditoría.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
