@@ -37,7 +37,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/client
           ) : customers.map((customer) => (
             <article key={customer.id} className="rounded-2xl border border-black/8 bg-white shadow-[0_8px_25px_rgba(26,52,42,0.04)]">
               <div className="flex flex-col justify-between gap-4 p-5 md:flex-row md:items-center">
-                <div><h2 className="font-bold">{customer.first_name} {customer.last_name}</h2><p className="mt-1 text-sm text-[#68766f]">{customer.company_name || "Cliente individual"}{customer.tax_id ? ` · NIT ${customer.tax_id}` : ""}</p></div>
+                <div><Link href={`/clientes/${customer.id}`} className="font-bold text-[#285645] hover:underline">{customer.first_name} {customer.last_name}</Link><p className="mt-1 text-sm text-[#68766f]">{customer.company_name || "Cliente individual"}{customer.tax_id ? ` · NIT ${customer.tax_id}` : ""}</p></div>
                 <div className="text-sm text-[#53645b] md:text-right"><p>{customer.phone || "Sin teléfono"}</p><p>{customer.email || "Sin correo"}</p><p className="mt-1 text-xs font-bold">Crédito: {customer.credit_limit == null ? "Sin límite" : `${context.organization.currency_code === "GTQ" ? "Q" : context.organization.currency_code} ${Number(customer.credit_limit).toFixed(2)}`}</p></div>
               </div>
               {canEdit && (
