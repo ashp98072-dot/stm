@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, HandCoins, Landmark, LogOut, PackageSearch, ReceiptText, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, HandCoins, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { getOrganizationContext } from "@/lib/auth/organization";
 
@@ -15,6 +15,7 @@ const modules = [
   { title: "Transferencias", description: "Mueve existencias de forma segura entre sucursales.", icon: ArrowLeftRight, href: "/transferencias" },
   { title: "Caja", description: "Abre, controla y cierra el efectivo del turno.", icon: Landmark, href: "/caja" },
   { title: "Créditos", description: "Consulta saldos pendientes y registra abonos.", icon: HandCoins, href: "/creditos" },
+  { title: "Configuración", description: "Actualiza empresa, recibos y perfil personal.", icon: Settings, href: "/configuracion" },
 ];
 
 export default async function Home() {

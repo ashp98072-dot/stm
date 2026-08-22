@@ -18,7 +18,7 @@ export async function getOrganizationContext() {
   if (!membership) redirect("/onboarding");
 
   const [{ data: organization }, { data: locations }, { data: profile }] = await Promise.all([
-    supabase.from("organizations").select("id, name, currency_code").eq("id", membership.organization_id).single(),
+    supabase.from("organizations").select("id, name, currency_code, timezone").eq("id", membership.organization_id).single(),
     supabase.from("locations").select("id, name").eq("organization_id", membership.organization_id).eq("active", true).order("created_at"),
     supabase.from("profiles").select("selected_location_id").eq("id", user.id).single(),
   ]);

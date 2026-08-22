@@ -46,6 +46,8 @@ La migración `20260822090000_sale_discounts.sql` agrega descuentos porcentuales
 
 La migración `20260822100000_customer_credit.sql` convierte las ventas con crédito tienda en cuentas por cobrar, registra abonos y reversiones, e integra las cobranzas en efectivo al cierre de caja.
 
+La migración `20260822110000_organization_settings.sql` agrega datos fiscales y de contacto, moneda, zona horaria y texto configurable para los recibos.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
