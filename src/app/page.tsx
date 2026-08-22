@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, Boxes, CircleDollarSign, LogOut, PackageSearch, ReceiptText, ShoppingCart, Users } from "lucide-react";
+import { ArrowUpRight, Boxes, CircleDollarSign, LogOut, PackageSearch, ReceiptText, ShoppingCart, Truck, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/login/actions";
 
@@ -9,6 +9,7 @@ const modules = [
   { title: "Inventario", description: "Administra existencias por sucursal.", icon: Boxes, href: "/inventario" },
   { title: "Clientes", description: "Consulta y registra clientes.", icon: Users, href: "/clientes" },
   { title: "Reportes", description: "Revisa ventas, pagos y movimientos.", icon: ReceiptText, href: "/reportes" },
+  { title: "Compras", description: "Recibe mercancía y administra proveedores.", icon: Truck, href: "/compras" },
 ];
 
 export default async function Home() {

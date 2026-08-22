@@ -28,6 +28,8 @@ Aplica en orden todos los archivos de `supabase/migrations`. La migración `2026
 
 La migración `20260822010000_role_based_rls.sql` sustituye el acceso general por políticas RLS específicas para propietarios, administradores, gerentes, cajeros, inventario y lectores.
 
+La migración `20260822020000_suppliers_and_purchases.sql` crea proveedores, compras y la recepción transaccional que actualiza costos, existencias y movimientos.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
