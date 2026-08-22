@@ -12,14 +12,16 @@ const organizationSchema = z.object({
   taxId: optional(50), address: optional(300), phone: optional(30),
   email: z.string().trim().max(254).refine((value) => !value || z.email().safeParse(value).success, "Correo inválido").transform((value) => value || null),
   receiptFooter: z.string().trim().min(2).max(300),
+  customerCreditDays: z.coerce.number().int().min(1).max(365),
+  supplierCreditDays: z.coerce.number().int().min(1).max(365),
 });
 
 export async function updateOrganization(formData: FormData) {
   const context = await getOrganizationContext();
   if (!["owner","admin"].includes(context.role)) redirect("/configuracion?error=permissions");
-  const parsed = organizationSchema.safeParse({ name: formData.get("name"), currency: formData.get("currency"), timezone: formData.get("timezone"), taxId: formData.get("taxId"), address: formData.get("address"), phone: formData.get("phone"), email: formData.get("email"), receiptFooter: formData.get("receiptFooter") });
+  const parsed = organizationSchema.safeParse({ name: formData.get("name"), currency: formData.get("currency"), timezone: formData.get("timezone"), taxId: formData.get("taxId"), address: formData.get("address"), phone: formData.get("phone"), email: formData.get("email"), receiptFooter: formData.get("receiptFooter"), customerCreditDays: formData.get("customerCreditDays"), supplierCreditDays: formData.get("supplierCreditDays") });
   if (!parsed.success) redirect("/configuracion?error=invalid");
-  const { error } = await context.supabase.from("organizations").update({ name: parsed.data.name, currency_code: parsed.data.currency, timezone: parsed.data.timezone, tax_id: parsed.data.taxId, address: parsed.data.address, phone: parsed.data.phone, email: parsed.data.email, receipt_footer: parsed.data.receiptFooter }).eq("id", context.organization.id);
+  const { error } = await context.supabase.from("organizations").update({ name: parsed.data.name, currency_code: parsed.data.currency, timezone: parsed.data.timezone, tax_id: parsed.data.taxId, address: parsed.data.address, phone: parsed.data.phone, email: parsed.data.email, receipt_footer: parsed.data.receiptFooter, customer_credit_days: parsed.data.customerCreditDays, supplier_credit_days: parsed.data.supplierCreditDays }).eq("id", context.organization.id);
   if (error) redirect("/configuracion?error=save");
   revalidatePath("/", "layout");
   redirect("/configuracion?saved=organization");
