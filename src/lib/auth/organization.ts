@@ -43,3 +43,7 @@ export function canManageCustomers(role: MembershipRole) {
 export function canCreateSales(role: MembershipRole) {
   return ["owner", "admin", "manager", "cashier"].includes(role);
 }
+
+export function canViewReports(role: MembershipRole) {
+  return ["owner", "admin", "manager", "viewer"].includes(role);
+}
