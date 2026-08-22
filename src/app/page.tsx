@@ -25,6 +25,7 @@ const modules = [
   { title: "Antigüedad", description: "Analiza saldos vencidos y próximos a vencer.", icon: CalendarClock, href: "/antiguedad" },
   { title: "Vencimientos", description: "Ajusta la fecha de crédito de cada documento.", icon: CalendarClock, href: "/vencimientos" },
   { title: "Devoluciones", description: "Devuelve productos y repone existencias.", icon: ArrowLeftRight, href: "/devoluciones" },
+  { title: "Historial de devoluciones", description: "Consulta e imprime comprobantes de reembolso.", icon: History, href: "/devoluciones/historial" },
 ];
 
 export default async function Home() {
