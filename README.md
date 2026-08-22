@@ -30,6 +30,8 @@ La migración `20260822010000_role_based_rls.sql` sustituye el acceso general po
 
 La migración `20260822020000_suppliers_and_purchases.sql` crea proveedores, compras y la recepción transaccional que actualiza costos, existencias y movimientos.
 
+La migración `20260822030000_expenses.sql` agrega categorías y gastos operativos con impuestos, métodos de pago, estados auditables y políticas por rol.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.

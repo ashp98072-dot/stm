@@ -47,3 +47,7 @@ export function canCreateSales(role: MembershipRole) {
 export function canViewReports(role: MembershipRole) {
   return ["owner", "admin", "manager", "viewer"].includes(role);
 }
+
+export function canManageExpenses(role: MembershipRole) {
+  return ["owner", "admin", "manager"].includes(role);
+}
