@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeftRight, ArrowUpRight, BellRing, Boxes, Building2, CircleDollarSign, Download, FileText, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, BellRing, Boxes, Building2, CalendarClock, CircleDollarSign, Download, FileText, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { getOrganizationContext } from "@/lib/auth/organization";
 
@@ -22,6 +22,7 @@ const modules = [
   { title: "Auditoría", description: "Revisa anulaciones, caja y operaciones sensibles.", icon: History, href: "/auditoria" },
   { title: "Exportaciones", description: "Descarga ventas, inventario y saldos en CSV.", icon: Download, href: "/exportaciones" },
   { title: "Alertas", description: "Prioriza stock, cotizaciones y saldos pendientes.", icon: BellRing, href: "/alertas" },
+  { title: "Antigüedad", description: "Analiza saldos vencidos y próximos a vencer.", icon: CalendarClock, href: "/antiguedad" },
 ];
 
 export default async function Home() {
