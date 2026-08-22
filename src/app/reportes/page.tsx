@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Banknote, CalendarDays, ChartNoAxesCombined, CreditCard, ReceiptText, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Banknote, CalendarDays, ChartNoAxesCombined, CreditCard, ReceiptText, ShoppingBag, TrendingDown, TrendingUp } from "lucide-react";
 import { canViewReports, getOrganizationContext } from "@/lib/auth/organization";
 
 const paymentLabels: Record<string, string> = { cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia", store_credit: "Crédito tienda", other: "Otro" };
@@ -16,11 +16,16 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
 
   if (!allowed) return <AccessDenied organizationName={context.organization.name} />;
 
-  const { data: sales, error } = await context.supabase.from("sales")
-    .select("id, receipt_number, subtotal, tax_total, total, completed_at, customer:customers(first_name, last_name, company_name), payments(method, amount)")
-    .eq("organization_id", context.organization.id).eq("status", "completed")
-    .gte("completed_at", `${from}T00:00:00-06:00`).lte("completed_at", `${to}T23:59:59.999-06:00`)
-    .order("completed_at", { ascending: false }).limit(500);
+  const [{ data: sales, error }, { data: expenses }] = await Promise.all([
+    context.supabase.from("sales")
+      .select("id, receipt_number, subtotal, tax_total, total, completed_at, customer:customers(first_name, last_name, company_name), payments(method, amount)")
+      .eq("organization_id", context.organization.id).eq("status", "completed")
+      .gte("completed_at", `${from}T00:00:00-06:00`).lte("completed_at", `${to}T23:59:59.999-06:00`)
+      .order("completed_at", { ascending: false }).limit(500),
+    context.supabase.from("expenses").select("total, category:expense_categories(name)")
+      .eq("organization_id", context.organization.id).eq("status", "posted")
+      .gte("incurred_at", `${from}T00:00:00-06:00`).lte("incurred_at", `${to}T23:59:59.999-06:00`),
+  ]);
   if (error) throw new Error("No se pudieron cargar los reportes.");
 
   const saleRows = sales ?? [];
@@ -30,9 +35,9 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
   const paymentTotals = new Map<string, number>();
   saleRows.forEach((sale) => ((sale.payments ?? []) as Array<{ method: string; amount: string | number }>).forEach((payment) => paymentTotals.set(payment.method, (paymentTotals.get(payment.method) ?? 0) + Number(payment.amount))));
 
-  let saleItems: Array<{ product_name: string; quantity: string | number; line_total: string | number }> = [];
+  let saleItems: Array<{ product_name: string; quantity: string | number; line_total: string | number; unit_price: string | number; unit_cost: string | number }> = [];
   if (saleRows.length) {
-    const { data } = await context.supabase.from("sale_items").select("product_name, quantity, line_total").eq("organization_id", context.organization.id).in("sale_id", saleRows.map((sale) => sale.id));
+    const { data } = await context.supabase.from("sale_items").select("product_name, quantity, line_total, unit_price, unit_cost").eq("organization_id", context.organization.id).in("sale_id", saleRows.map((sale) => sale.id));
     saleItems = data ?? [];
   }
   const productTotals = new Map<string, { quantity: number; total: number }>();
@@ -41,12 +46,24 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
     productTotals.set(item.product_name, { quantity: current.quantity + Number(item.quantity), total: current.total + Number(item.line_total) });
   });
   const topProducts = [...productTotals.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 5);
+  const grossProfit = saleItems.reduce((sum, item) => sum + (Number(item.unit_price) - Number(item.unit_cost)) * Number(item.quantity), 0);
+  const expenseRows = expenses ?? [];
+  const expenseTotal = expenseRows.reduce((sum, expense) => sum + Number(expense.total), 0);
+  const operatingResult = grossProfit - expenseTotal;
+  const expenseCategories = new Map<string, number>();
+  expenseRows.forEach((expense) => {
+    const value = expense.category as { name?: string } | Array<{ name?: string }> | null;
+    const name = (Array.isArray(value) ? value[0]?.name : value?.name) || "Sin categoría";
+    expenseCategories.set(name, (expenseCategories.get(name) ?? 0) + Number(expense.total));
+  });
 
   const metrics = [
     { label: "Ventas netas", value: `${currency} ${total.toFixed(2)}`, detail: `${saleRows.length} transacciones`, icon: ChartNoAxesCombined },
     { label: "Ticket promedio", value: `${currency} ${average.toFixed(2)}`, detail: "Por transacción", icon: ReceiptText },
     { label: "Impuestos", value: `${currency} ${taxes.toFixed(2)}`, detail: "Total recaudado", icon: Banknote },
     { label: "Unidades vendidas", value: saleItems.reduce((sum, item) => sum + Number(item.quantity), 0).toFixed(3).replace(/\.000$/, ""), detail: `${productTotals.size} productos`, icon: ShoppingBag },
+    { label: "Utilidad bruta", value: `${currency} ${grossProfit.toFixed(2)}`, detail: "Ventas menos costo", icon: TrendingUp },
+    { label: "Resultado operativo", value: `${currency} ${operatingResult.toFixed(2)}`, detail: `${currency} ${expenseTotal.toFixed(2)} en gastos`, icon: TrendingDown },
   ];
 
   return (
@@ -55,11 +72,12 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reportes
       <div className="mx-auto max-w-7xl px-6 py-9 lg:px-10">
         <div className="mb-7 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Análisis</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Reporte de ventas</h1><p className="mt-2 text-[#68766f]">Hasta 500 transacciones por consulta.</p></div><form className="flex flex-wrap items-end gap-2 rounded-2xl border border-black/8 bg-white p-3"><DateField label="Desde" name="from" value={from} /><DateField label="Hasta" name="to" value={to} /><button className="h-10 rounded-lg bg-[#163f32] px-4 text-sm font-bold text-white">Aplicar</button></form></div>
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(({ label, value, detail, icon: Icon }) => <article key={label} className="rounded-2xl border border-black/8 bg-white p-5 shadow-[0_12px_35px_rgba(26,52,42,0.05)]"><div className="mb-6 flex items-center justify-between"><span className="text-sm font-medium text-[#617069]">{label}</span><span className="grid size-9 place-items-center rounded-lg bg-[#e9eee8] text-[#285645]"><Icon size={18} /></span></div><p className="text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-sm text-[#829088]">{detail}</p></article>)}</section>
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{metrics.map(({ label, value, detail, icon: Icon }) => <article key={label} className="rounded-2xl border border-black/8 bg-white p-5 shadow-[0_12px_35px_rgba(26,52,42,0.05)]"><div className="mb-6 flex items-center justify-between"><span className="text-sm font-medium text-[#617069]">{label}</span><span className="grid size-9 place-items-center rounded-lg bg-[#e9eee8] text-[#285645]"><Icon size={18} /></span></div><p className="text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-sm text-[#829088]">{detail}</p></article>)}</section>
 
-        <div className="mt-7 grid gap-5 lg:grid-cols-2">
+        <div className="mt-7 grid gap-5 lg:grid-cols-3">
           <section className="rounded-2xl border border-black/8 bg-white p-5"><h2 className="flex items-center gap-2 font-bold"><CreditCard size={18} className="text-[#39705b]" /> Métodos de pago</h2><div className="mt-5 space-y-3">{!paymentTotals.size && <p className="text-sm text-[#748179]">Sin pagos en este período.</p>}{[...paymentTotals.entries()].sort((a, b) => b[1] - a[1]).map(([method, amount]) => <div key={method} className="flex items-center justify-between border-b border-black/7 pb-3 text-sm last:border-0"><span>{paymentLabels[method] ?? method}</span><span className="font-bold">{currency} {amount.toFixed(2)}</span></div>)}</div></section>
           <section className="rounded-2xl border border-black/8 bg-white p-5"><h2 className="flex items-center gap-2 font-bold"><ShoppingBag size={18} className="text-[#39705b]" /> Productos destacados</h2><div className="mt-5 space-y-3">{!topProducts.length && <p className="text-sm text-[#748179]">Sin productos vendidos en este período.</p>}{topProducts.map(([name, values], index) => <div key={name} className="grid grid-cols-[24px_1fr_auto] items-center gap-3 border-b border-black/7 pb-3 text-sm last:border-0"><span className="font-bold text-[#8a968f]">{index + 1}</span><div><p className="font-semibold">{name}</p><p className="text-xs text-[#7b8780]">{values.quantity} unidades</p></div><span className="font-bold">{currency} {values.total.toFixed(2)}</span></div>)}</div></section>
+          <section className="rounded-2xl border border-black/8 bg-white p-5"><h2 className="flex items-center gap-2 font-bold"><TrendingDown size={18} className="text-[#39705b]" /> Gastos operativos</h2><div className="mt-5 space-y-3">{!expenseCategories.size && <p className="text-sm text-[#748179]">Sin gastos en este período.</p>}{[...expenseCategories.entries()].sort((a,b) => b[1] - a[1]).map(([name, amount]) => <div key={name} className="flex justify-between border-b border-black/7 pb-3 text-sm last:border-0"><span>{name}</span><span className="font-bold">{currency} {amount.toFixed(2)}</span></div>)}</div></section>
         </div>
 
         <section className="mt-7 overflow-hidden rounded-2xl border border-black/8 bg-white"><div className="border-b border-black/8 px-5 py-4"><h2 className="font-bold">Transacciones</h2></div><div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="bg-[#edf0eb] text-xs uppercase tracking-wider text-[#607067]"><tr><th className="px-5 py-3">Recibo</th><th className="px-5 py-3">Fecha</th><th className="px-5 py-3">Cliente</th><th className="px-5 py-3">Pago</th><th className="px-5 py-3 text-right">Total</th></tr></thead><tbody>{!saleRows.length && <tr><td colSpan={5} className="px-5 py-14 text-center text-[#748179]">No hay ventas en el rango seleccionado.</td></tr>}{saleRows.map((sale) => { const customerValue = sale.customer as { first_name?: string; last_name?: string; company_name?: string | null } | Array<{ first_name?: string; last_name?: string; company_name?: string | null }> | null; const customer = Array.isArray(customerValue) ? customerValue[0] : customerValue; const payments = (sale.payments ?? []) as Array<{ method: string }>; return <tr key={sale.id} className="border-t border-black/7"><td className="px-5 py-4"><Link href={`/ventas/recibo/${sale.id}`} className="font-mono font-bold text-[#285645] hover:underline">{sale.receipt_number}</Link></td><td className="px-5 py-4 text-[#617067]">{new Intl.DateTimeFormat("es-GT", { dateStyle: "short", timeStyle: "short", timeZone: "America/Guatemala" }).format(new Date(sale.completed_at))}</td><td className="px-5 py-4">{customer ? customer.company_name || `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim() : "Consumidor final"}</td><td className="px-5 py-4">{payments.map((payment) => paymentLabels[payment.method] ?? payment.method).join(", ")}</td><td className="px-5 py-4 text-right font-bold">{currency} {Number(sale.total).toFixed(2)}</td></tr>; })}</tbody></table></div></section>
