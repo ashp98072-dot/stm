@@ -28,6 +28,7 @@ export async function completeSale(
     discountValue: formData.get("discountValue"), items: formData.get("items"),
   });
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Datos de venta inválidos." };
+  if (parsed.data.paymentMethod === "store_credit" && !parsed.data.customerId) return { message: "Selecciona un cliente para vender al crédito." };
 
   const context = await getOrganizationContext();
   if (!canCreateSales(context.role)) return { message: "No tienes permiso para realizar ventas." };

@@ -44,6 +44,8 @@ La migración `20260822080000_cash_register.sql` agrega sesiones de caja por caj
 
 La migración `20260822090000_sale_discounts.sql` agrega descuentos porcentuales o fijos, distribuidos entre las líneas para recalcular correctamente impuestos, utilidad y recibos.
 
+La migración `20260822100000_customer_credit.sql` convierte las ventas con crédito tienda en cuentas por cobrar, registra abonos y reversiones, e integra las cobranzas en efectivo al cierre de caja.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
