@@ -40,6 +40,8 @@ La migración `20260822060000_inventory_transfers.sql` registra transferencias a
 
 La migración `20260822070000_sale_voids.sql` permite anular ventas completadas, restaura las existencias en la sucursal original y conserva el motivo y el usuario responsable.
 
+La migración `20260822080000_cash_register.sql` agrega sesiones de caja por cajero y sucursal, movimientos manuales, cálculo del efectivo esperado y diferencias de cierre.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
