@@ -3,8 +3,9 @@ import { ArrowLeft } from "lucide-react";
 import { canCreateSales, getOrganizationContext } from "@/lib/auth/organization";
 import { SaleTerminal } from "./sale-terminal";
 
-export default async function SalesPage() {
+export default async function SalesPage({ searchParams }: PageProps<"/ventas">) {
   const context = await getOrganizationContext();
+  const quoteId = typeof (await searchParams).quote === "string" ? (await searchParams).quote as string : "";
   const allowed = canCreateSales(context.role);
   const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }] = await Promise.all([
     context.supabase.from("products")
@@ -31,13 +32,15 @@ export default async function SalesPage() {
     taxId: customer.tax_id,
   }));
   const currency = context.organization.currency_code === "GTQ" ? "Q" : context.organization.currency_code;
+  const { data: quote } = quoteId ? await context.supabase.from("quotes").select("id, customer_id, status, quote_items(product_id, quantity)").eq("id", quoteId).eq("organization_id", context.organization.id).eq("status", "draft").maybeSingle() : { data: null };
+  const quoteItems = (quote?.quote_items ?? []) as Array<{ product_id:string|null; quantity:string|number }>;
 
   return (
     <main className="min-h-screen bg-[#f4f5f1] text-[#17251f]">
       <header className="bg-[#163f32] text-white"><div className="mx-auto flex max-w-[1500px] items-center justify-between px-6 py-5 lg:px-10"><div><p className="text-lg font-bold">{context.organization.name}</p><p className="text-xs text-white/60">Caja · {context.location.name}</p></div><Link href="/" className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/20"><ArrowLeft size={16} /> Panel</Link></div></header>
       <div className="mx-auto max-w-[1500px] px-6 py-8 lg:px-10">
         <div className="mb-6"><p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Punto de venta</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Nueva venta</h1></div>
-        {allowed ? <SaleTerminal products={products} customers={customers} currency={currency} /> : <div className="rounded-2xl bg-white p-10 text-center font-semibold text-red-700">Tu rol no permite procesar ventas.</div>}
+        {quote && <p className="mb-5 rounded-xl bg-[#eef5ef] px-4 py-3 text-sm font-semibold text-[#285645]">Cotización cargada. Confirma existencias, método de pago y total antes de cobrar.</p>}{allowed ? <SaleTerminal products={products} customers={customers} currency={currency} quoteId={quote?.id ?? ""} initialCustomerId={quote?.customer_id ?? ""} initialItems={quoteItems.flatMap((item)=>item.product_id?[{productId:item.product_id,quantity:Number(item.quantity)}]:[])} /> : <div className="rounded-2xl bg-white p-10 text-center font-semibold text-red-700">Tu rol no permite procesar ventas.</div>}
         <section className="mt-7 overflow-hidden rounded-2xl border border-black/8 bg-white"><h2 className="border-b border-black/8 p-4 font-bold">Ventas recientes de la sucursal</h2><div className="divide-y divide-black/8">{!recentSales?.length && <p className="p-8 text-center text-sm text-[#728078]">Todavía no hay ventas.</p>}{recentSales?.map((sale) => <Link key={sale.id} href={`/ventas/recibo/${sale.id}`} className="grid gap-2 p-4 text-sm transition hover:bg-[#f6f7f4] sm:grid-cols-[1fr_1fr_auto]"><div><p className="font-mono font-bold text-[#285645]">{sale.receipt_number}</p><p className={`mt-1 text-xs font-bold ${sale.status === "voided" ? "text-red-700" : "text-emerald-700"}`}>{sale.status === "voided" ? "Anulada" : "Completada"}</p></div><p className="text-[#68766f]">{new Intl.DateTimeFormat("es-GT", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Guatemala" }).format(new Date(sale.completed_at))}</p><strong>{currency} {Number(sale.total).toFixed(2)}</strong></Link>)}</div></section>
       </div>
     </main>

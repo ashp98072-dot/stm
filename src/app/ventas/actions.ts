@@ -12,6 +12,7 @@ const saleSchema = z.object({
   amountReceived: z.string().transform((value) => value ? Number(value) : null).pipe(z.number().nonnegative().nullable()),
   discountType: z.enum(["none", "percent", "fixed"]),
   discountValue: z.coerce.number().min(0).max(999999999),
+  quoteId: z.string().transform((value) => value || null).pipe(z.uuid().nullable()),
   items: z.string().transform((value, context) => {
     try { return JSON.parse(value) as unknown; }
     catch { context.addIssue({ code: "custom", message: "El carrito no es válido." }); return z.NEVER; }
@@ -25,7 +26,7 @@ export async function completeSale(
   const parsed = saleSchema.safeParse({
     customerId: formData.get("customerId"), paymentMethod: formData.get("paymentMethod"),
     amountReceived: formData.get("amountReceived"), discountType: formData.get("discountType"),
-    discountValue: formData.get("discountValue"), items: formData.get("items"),
+    discountValue: formData.get("discountValue"), quoteId: formData.get("quoteId"), items: formData.get("items"),
   });
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Datos de venta inválidos." };
   if (parsed.data.paymentMethod === "store_credit" && !parsed.data.customerId) return { message: "Selecciona un cliente para vender al crédito." };
@@ -49,5 +50,6 @@ export async function completeSale(
     if (detail.includes("could not find the function")) return { message: "Falta aplicar la migración de ventas en Supabase." };
     return { message: "No se pudo completar la venta. Intenta nuevamente." };
   }
+  if (parsed.data.quoteId) await context.supabase.rpc("convert_quote", { p_quote_id: parsed.data.quoteId, p_sale_id: data });
   redirect(`/ventas/recibo/${data}`);
 }

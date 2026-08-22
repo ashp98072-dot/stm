@@ -48,6 +48,8 @@ La migración `20260822100000_customer_credit.sql` convierte las ventas con cré
 
 La migración `20260822110000_organization_settings.sql` agrega datos fiscales y de contacto, moneda, zona horaria y texto configurable para los recibos.
 
+La migración `20260822120000_quotes.sql` agrega cotizaciones con precios congelados, vigencia, impresión y conversión directa a venta.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.

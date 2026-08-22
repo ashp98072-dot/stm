@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, Boxes, Building2, CircleDollarSign, FileText, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { getOrganizationContext } from "@/lib/auth/organization";
 
@@ -17,6 +17,7 @@ const modules = [
   { title: "Créditos", description: "Consulta saldos pendientes y registra abonos.", icon: HandCoins, href: "/creditos" },
   { title: "Configuración", description: "Actualiza empresa, recibos y perfil personal.", icon: Settings, href: "/configuracion" },
   { title: "Kardex", description: "Audita entradas y salidas de inventario.", icon: History, href: "/movimientos" },
+  { title: "Cotizaciones", description: "Prepara propuestas y conviértelas en ventas.", icon: FileText, href: "/cotizaciones" },
 ];
 
 export default async function Home() {
