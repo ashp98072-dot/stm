@@ -35,6 +35,7 @@ const modules = [
   { title: "Reporte de compras", description: "Analiza inversión, proveedores y productos adquiridos.", icon: Truck, href: "/reportes/compras" },
   { title: "Devoluciones a proveedores", description: "Regresa mercancía y ajusta inventario y saldos.", icon: ArrowLeftRight, href: "/devoluciones-compras" },
   { title: "Rentabilidad", description: "Compara ingresos, costos, utilidad y margen por producto.", icon: CircleDollarSign, href: "/reportes/rentabilidad" },
+  { title: "Reporte de caja", description: "Supervisa cierres, faltantes y sobrantes por turno.", icon: Landmark, href: "/reportes/caja" },
 ];
 
 export default async function Home() {
