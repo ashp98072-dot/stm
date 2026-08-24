@@ -31,6 +31,7 @@ const modules = [
   { title: "Valoración", description: "Consulta costo, valor de venta y margen del inventario.", icon: CircleDollarSign, href: "/inventario/valoracion" },
   { title: "Impuestos", description: "Resume débitos y créditos fiscales del período.", icon: ReceiptText, href: "/reportes/impuestos" },
   { title: "Flujo de caja", description: "Analiza entradas, salidas y neto por método.", icon: WalletCards, href: "/reportes/flujo-caja" },
+  { title: "Reposición", description: "Prepara cantidades sugeridas para reabastecer stock bajo.", icon: PackageSearch, href: "/inventario/reposicion" },
 ];
 
 export default async function Home() {
