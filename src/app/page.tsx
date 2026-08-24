@@ -37,6 +37,7 @@ const modules = [
   { title: "Rentabilidad", description: "Compara ingresos, costos, utilidad y margen por producto.", icon: CircleDollarSign, href: "/reportes/rentabilidad" },
   { title: "Reporte de caja", description: "Supervisa cierres, faltantes y sobrantes por turno.", icon: Landmark, href: "/reportes/caja" },
   { title: "Comparar sucursales", description: "Contrasta ventas, compras, gastos e inventario por sede.", icon: Building2, href: "/reportes/sucursales" },
+  { title: "Desempeño del equipo", description: "Compara ventas, devoluciones y cierres por colaborador.", icon: Users, href: "/reportes/equipo" },
 ];
 
 const moduleGroups = [
@@ -44,14 +45,14 @@ const moduleGroups = [
   { title: "Inventario", description: "Existencias, movimientos y abastecimiento interno.", paths: ["/inventario", "/movimientos", "/transferencias", "/inventario/reposicion", "/inventario/valoracion"] },
   { title: "Compras y proveedores", description: "Recepciones, proveedores y obligaciones de compra.", paths: ["/compras", "/compras/historial", "/proveedores", "/devoluciones-compras", "/cuentas-por-pagar"] },
   { title: "Caja y finanzas", description: "Efectivo, créditos, gastos y vencimientos.", paths: ["/caja", "/creditos", "/gastos", "/vencimientos", "/antiguedad"] },
-  { title: "Análisis y control", description: "Reportes, alertas, auditoría y exportaciones.", paths: ["/reportes", "/reportes/impuestos", "/reportes/flujo-caja", "/reportes/compras", "/reportes/rentabilidad", "/reportes/caja", "/reportes/sucursales", "/alertas", "/auditoria", "/exportaciones"] },
+  { title: "Análisis y control", description: "Reportes, alertas, auditoría y exportaciones.", paths: ["/reportes", "/reportes/impuestos", "/reportes/flujo-caja", "/reportes/compras", "/reportes/rentabilidad", "/reportes/caja", "/reportes/sucursales", "/reportes/equipo", "/alertas", "/auditoria", "/exportaciones"] },
   { title: "Administración", description: "Equipo, sucursales y preferencias de la empresa.", paths: ["/equipo", "/sucursales", "/configuracion"] },
 ];
 
 const restrictedPaths: Record<string, string[]> = {
   cashier: ["/ventas", "/clientes", "/cotizaciones", "/devoluciones", "/devoluciones/historial", "/caja", "/creditos", "/sucursales", "/configuracion"],
   inventory: ["/inventario", "/movimientos", "/transferencias", "/inventario/reposicion", "/inventario/valoracion", "/compras", "/compras/historial", "/proveedores", "/devoluciones-compras", "/cuentas-por-pagar", "/sucursales", "/configuracion"],
-  viewer: ["/clientes", "/devoluciones/historial", "/inventario", "/movimientos", "/inventario/valoracion", "/compras/historial", "/proveedores", "/cuentas-por-pagar", "/creditos", "/antiguedad", "/alertas", "/auditoria", "/exportaciones", "/reportes", "/reportes/impuestos", "/reportes/flujo-caja", "/reportes/compras", "/reportes/rentabilidad", "/reportes/caja", "/reportes/sucursales", "/sucursales", "/configuracion"],
+  viewer: ["/clientes", "/devoluciones/historial", "/inventario", "/movimientos", "/inventario/valoracion", "/compras/historial", "/proveedores", "/cuentas-por-pagar", "/creditos", "/antiguedad", "/alertas", "/auditoria", "/exportaciones", "/reportes", "/reportes/impuestos", "/reportes/flujo-caja", "/reportes/compras", "/reportes/rentabilidad", "/reportes/caja", "/reportes/sucursales", "/reportes/equipo", "/sucursales", "/configuracion"],
 };
 
 export default async function Home() {
