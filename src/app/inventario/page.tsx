@@ -10,7 +10,10 @@ const editInput = "h-10 w-full rounded-lg border border-black/10 bg-white px-3 t
 
 export default async function InventoryPage({ searchParams }: PageProps<"/inventario">) {
   const context = await getOrganizationContext();
-  const query = String((await searchParams).q ?? "").trim();
+  const params = await searchParams;
+  const query = String(params.q ?? "").trim();
+  const notice = params.stock === "updated" ? "Existencia actualizada correctamente." : null;
+  const alert = typeof params.error === "string" ? (params.error === "permissions" ? "No tienes permiso para ajustar inventario." : params.error === "invalid-stock" ? "La existencia y el mínimo deben ser valores válidos no negativos." : "No se pudo actualizar la existencia.") : null;
   const safeQuery = query.replace(/[,().%_]/g, " ").trim();
   let productsQuery = context.supabase
     .from("products")
@@ -28,6 +31,8 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
     <main className="min-h-screen bg-[#f4f5f1] text-[#17251f]">
       <header className="bg-[#163f32] text-white"><div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10"><div><p className="text-lg font-bold">{context.organization.name}</p><p className="text-xs text-white/60">{context.location.name}</p></div><Link href="/" className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/20"><ArrowLeft size={16} /> Panel</Link></div></header>
       <div className="mx-auto max-w-7xl px-6 py-9 lg:px-10">
+        {notice && <p className="mb-5 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{notice}</p>}
+        {alert && <p className="mb-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-800">{alert}</p>}
         <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div><p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Catálogo</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Productos e inventario</h1><p className="mt-2 text-[#68766f]">{products?.length ?? 0} productos en {context.location.name}</p></div>
           <form className="flex h-11 min-w-72 items-center gap-2 rounded-xl border border-black/10 bg-white px-3"><Search size={18} className="text-[#75827b]" /><input name="q" defaultValue={query} className="w-full bg-transparent outline-none" placeholder="Buscar nombre, SKU o código" /></form>

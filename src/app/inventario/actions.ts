@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { canManageInventory, getOrganizationContext } from "@/lib/auth/organization";
 
@@ -58,17 +59,17 @@ export async function createProduct(
 
 const stockSchema = z.object({
   productId: z.uuid(),
-  quantity: z.coerce.number(),
+  quantity: z.coerce.number().min(0),
   reorderPoint: z.coerce.number().min(0),
   reason: z.enum(["count", "damage", "shrinkage", "correction", "other"]),
 });
 
 export async function updateStock(formData: FormData) {
   const parsed = stockSchema.safeParse({ productId: formData.get("productId"), quantity: formData.get("quantity"), reorderPoint: formData.get("reorderPoint"), reason: formData.get("reason") });
-  if (!parsed.success) return;
+  if (!parsed.success) redirect("/inventario?error=invalid-stock");
   const context = await getOrganizationContext();
-  if (!canManageInventory(context.role)) return;
-  await context.supabase.rpc("adjust_inventory_stock", {
+  if (!canManageInventory(context.role)) redirect("/inventario?error=permissions");
+  const { error } = await context.supabase.rpc("adjust_inventory_stock", {
     p_organization_id: context.organization.id,
     p_location_id: context.location.id,
     p_product_id: parsed.data.productId,
@@ -76,8 +77,10 @@ export async function updateStock(formData: FormData) {
     p_reorder_point: parsed.data.reorderPoint,
     p_reason: ({ count: "Conteo físico", damage: "Producto dañado", shrinkage: "Merma de inventario", correction: "Corrección de registro", other: "Otro ajuste manual" })[parsed.data.reason],
   });
+  if (error) redirect("/inventario?error=stock");
   revalidatePath("/");
   revalidatePath("/inventario");
+  redirect("/inventario?stock=updated");
 }
 
 export async function updateProduct(formData: FormData) {
