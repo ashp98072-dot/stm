@@ -50,7 +50,7 @@ export async function voidPurchase(formData: FormData) {
   const parsed = z.object({ purchaseId: z.uuid(), reason: z.string().trim().min(3).max(300) }).safeParse({ purchaseId: formData.get("purchaseId"), reason: formData.get("reason") });
   if (!parsed.success) redirect("/compras?error=void");
   const { error } = await context.supabase.rpc("void_purchase", { p_purchase_id: parsed.data.purchaseId, p_reason: parsed.data.reason });
-  if (error) redirect(`/compras?error=${error.message.includes("insufficient stock") ? "stock" : "void"}`);
+  if (error) redirect(`/compras?error=${error.message.toLowerCase().includes("open cash register") ? "register" : error.message.includes("insufficient stock") ? "stock" : "void"}`);
   revalidatePath("/inventario"); revalidatePath("/movimientos");
   redirect("/compras?voided=1");
 }

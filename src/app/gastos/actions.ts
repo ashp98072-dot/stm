@@ -107,7 +107,7 @@ export async function voidExpense(formData: FormData) {
     .eq("status", "posted")
     .select("id")
     .maybeSingle();
-  if (error || !data) redirect("/gastos?error=void");
+  if (error || !data) redirect(`/gastos?error=${error?.message.toLowerCase().includes("open cash register") ? "register" : "void"}`);
   revalidatePath("/gastos");
   revalidatePath("/reportes");
   redirect("/gastos?voided=1");

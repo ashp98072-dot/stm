@@ -34,7 +34,9 @@ export default async function ExpensesPage({
         ? "No tienes permiso para anular gastos."
         : params.error === "invalid"
           ? "El gasto seleccionado no es válido."
-          : "No se pudo anular el gasto. Puede que ya estuviera anulado."
+          : params.error === "register"
+            ? "Abre tu caja antes de anular un gasto pagado en efectivo."
+            : "No se pudo anular el gasto. Puede que ya estuviera anulado."
       : null;
   const today = new Date().toLocaleDateString("en-CA", {
     timeZone: "America/Guatemala",
