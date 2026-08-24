@@ -31,3 +31,11 @@ export async function deactivateVariant(formData:FormData){
   revalidatePath(`/inventario/${parsed.data.productId}/variantes`);
   redirect(`/inventario/${parsed.data.productId}/variantes?deactivated=1`);
 }
+
+export async function updateVariantStock(formData:FormData){
+  const parsed=z.object({productId:z.uuid(),variantId:z.uuid(),quantity:z.coerce.number().min(0),reorderPoint:z.coerce.number().min(0),reason:z.string().trim().min(3).max(300)}).safeParse({productId:formData.get("productId"),variantId:formData.get("variantId"),quantity:formData.get("quantity"),reorderPoint:formData.get("reorderPoint"),reason:formData.get("reason")});
+  if(!parsed.success)redirect(`/inventario/${String(formData.get("productId")??"")}/variantes?error=stock`);
+  const context=await getOrganizationContext();if(!canManageInventory(context.role))redirect(`/inventario/${parsed.data.productId}/variantes?error=permissions`);
+  const{error}=await context.supabase.rpc("adjust_variant_inventory",{p_organization_id:context.organization.id,p_location_id:context.location.id,p_variant_id:parsed.data.variantId,p_quantity:parsed.data.quantity,p_reorder_point:parsed.data.reorderPoint,p_reason:parsed.data.reason});
+  if(error)redirect(`/inventario/${parsed.data.productId}/variantes?error=stock`);revalidatePath(`/inventario/${parsed.data.productId}/variantes`);revalidatePath("/inventario");revalidatePath("/movimientos");revalidatePath("/ventas");redirect(`/inventario/${parsed.data.productId}/variantes?stock=1`);
+}
