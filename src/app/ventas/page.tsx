@@ -9,7 +9,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   const allowed = canCreateSales(context.role);
   const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }, { data: creditMovements }, {data:priceRules,error:rulesError}] = await Promise.all([
     context.supabase.from("products")
-      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags(tag_id), inventory_levels(quantity, location_id), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
+      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags(tag_id), inventory_levels(quantity, location_id), product_variants(id,name,sku,barcode,price,active,variant_inventory_levels(quantity,location_id)), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
       .eq("organization_id", context.organization.id).eq("active", true).order("name"),
     context.supabase.from("customers").select("id, first_name, last_name, company_name, tax_id, credit_limit")
       .eq("organization_id", context.organization.id).eq("active", true).order("first_name"),
@@ -19,7 +19,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   ]);
   if (productsError||rulesError) throw new Error("No se pudo cargar el catálogo de venta.");
 
-  const products = (rawProducts ?? []).map((product) => {
+  const products = (rawProducts ?? []).flatMap((product) => {
     const levels = (product.inventory_levels ?? []) as Array<{ quantity: number | string; location_id: string }>;
     const level = levels.find((item) => item.location_id === context.location.id);
     const kit = product.product_kits?.find((item) => item.active);
@@ -28,12 +28,15 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
       const componentLevel = componentProduct?.inventory_levels?.find((item) => item.location_id === context.location.id);
       return Number(componentLevel?.quantity ?? 0) / Number(component.quantity);
     })))) : null;
-    return {
+    const base = {
       id: product.id, name: product.name, sku: product.sku, barcode: product.barcode,
       price: Number(product.price), taxRate: Number(product.tax_rate),
       categoryId:product.category_id,tagIds:product.product_tags.map(tag=>tag.tag_id),
       quantity: kitQuantity ?? (product.track_inventory ? Number(level?.quantity ?? 0) : 999999),
-    };
+      variantId:null as string|null,
+    },variants=kit?[]:product.product_variants.filter(variant=>variant.active).map(variant=>({
+      ...base,variantId:variant.id,name:`${product.name} · ${variant.name}`,sku:variant.sku??product.sku,barcode:variant.barcode??product.barcode,price:Number(variant.price??product.price),quantity:Number(variant.variant_inventory_levels.find(item=>item.location_id===context.location.id)?.quantity??0),
+    }));return [base,...variants];
   });
   const creditBalances = new Map<string, number>();
   (creditMovements ?? []).forEach((movement) => creditBalances.set(movement.customer_id, (creditBalances.get(movement.customer_id) ?? 0) + (movement.type === "charge" ? Number(movement.amount) : -Number(movement.amount))));

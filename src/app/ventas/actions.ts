@@ -16,7 +16,7 @@ const saleSchema = z.object({
   items: z.string().transform((value, context) => {
     try { return JSON.parse(value) as unknown; }
     catch { context.addIssue({ code: "custom", message: "El carrito no es válido." }); return z.NEVER; }
-  }).pipe(z.array(z.object({ product_id: z.uuid(), quantity: z.number().positive() })).min(1, "Agrega al menos un producto.")),
+  }).pipe(z.array(z.object({ product_id: z.uuid(),variant_id:z.uuid().nullable(), quantity: z.number().positive() })).min(1, "Agrega al menos un producto.")),
 });
 
 export async function completeSale(
@@ -45,7 +45,7 @@ export async function completeSale(
   };
   const { data, error } = parsed.data.quoteId
     ? await context.supabase.rpc("complete_quoted_sale", { ...saleArguments, p_quote_id: parsed.data.quoteId })
-    : await context.supabase.rpc("complete_priced_sale", saleArguments);
+    : await context.supabase.rpc("complete_variant_sale", saleArguments);
   if (error) {
     const detail = error.message.toLowerCase();
     if (detail.includes("insufficient stock")) return { message: "No hay existencia suficiente para uno de los productos." };

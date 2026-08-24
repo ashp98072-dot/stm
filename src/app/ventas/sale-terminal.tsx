@@ -4,14 +4,14 @@ import { useActionState, useMemo, useState } from "react";
 import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { completeSale, type SaleActionState } from "./actions";
 
-type Product = { id: string; name: string; sku: string | null; barcode: string | null; price: number; taxRate: number; quantity: number;categoryId:string|null;tagIds:string[] };
+type Product = { id: string;variantId:string|null; name: string; sku: string | null; barcode: string | null; price: number; taxRate: number; quantity: number;categoryId:string|null;tagIds:string[] };
 type PriceRule={id:string;product_id:string|null;category_id:string|null;tag_id:string|null;adjustment:string;value:number;minimumQuantity:number;priority:number;starts_at:string|null;ends_at:string|null};
 type Customer = { id: string; name: string; taxId: string | null; availableCredit: number | null };
 type CartLine = Product & { cartQuantity: number };
 const initialState: SaleActionState = { message: "" };
 
 export function SaleTerminal({ products, customers, priceRules, currency, initialItems = [], initialCustomerId = "", quoteId = "" }: { products: Product[]; customers: Customer[];priceRules:PriceRule[]; currency: string; initialItems?: Array<{ productId:string; quantity:number }>; initialCustomerId?:string; quoteId?:string }) {
-  const [cart, setCart] = useState<CartLine[]>(() => initialItems.flatMap((initial) => { const product=products.find((item)=>item.id===initial.productId); return product ? [{...product,cartQuantity:Math.min(initial.quantity,product.quantity)}] : []; }));
+  const [cart, setCart] = useState<CartLine[]>(() => initialItems.flatMap((initial) => { const product=products.find((item)=>item.id===initial.productId&&!item.variantId); return product ? [{...product,cartQuantity:Math.min(initial.quantity,product.quantity)}] : []; }));
   const [query, setQuery] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [received, setReceived] = useState("");
@@ -25,11 +25,11 @@ export function SaleTerminal({ products, customers, priceRules, currency, initia
     return products.filter((product) => [product.name, product.sku, product.barcode].some((value) => value?.toLowerCase().includes(term)));
   }, [products, query]);
   const add = (product: Product) => setCart((current) => {
-    const line = current.find((item) => item.id === product.id);
-    if (line) return current.map((item) => item.id === product.id ? { ...item, cartQuantity: Math.min(item.cartQuantity + 1, item.quantity) } : item);
+    const line = current.find((item) => cartKey(item) === cartKey(product));
+    if (line) return current.map((item) => cartKey(item) === cartKey(product) ? { ...item, cartQuantity: Math.min(item.cartQuantity + 1, item.quantity) } : item);
     return product.quantity > 0 ? [...current, { ...product, cartQuantity: 1 }] : current;
   });
-  const changeQuantity = (id: string, delta: number) => setCart((current) => current.map((item) => item.id === id ? { ...item, cartQuantity: Math.max(1, Math.min(item.cartQuantity + delta, item.quantity)) } : item));
+  const changeQuantity = (key: string, delta: number) => setCart((current) => current.map((item) => cartKey(item) === key ? { ...item, cartQuantity: Math.max(1, Math.min(item.cartQuantity + delta, item.quantity)) } : item));
   const subtotal = cart.reduce((sum, item) => sum + rulePrice(item,item.cartQuantity,priceRules) * item.cartQuantity, 0);
   const requestedDiscount = discountType === "percent" ? subtotal * Math.min(100, Number(discountValue) || 0) / 100 : discountType === "fixed" ? Number(discountValue) || 0 : 0;
   const discount = Math.min(subtotal, requestedDiscount);
@@ -43,7 +43,7 @@ export function SaleTerminal({ products, customers, priceRules, currency, initia
         <div className="mb-4 flex h-12 items-center gap-3 rounded-xl border border-black/10 bg-white px-4"><Search size={19} className="text-[#728078]" /><input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent outline-none" placeholder="Buscar producto, SKU o escanear código" autoFocus /></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((product) => (
-            <button key={product.id} onClick={() => add(product)} disabled={product.quantity <= 0} className="rounded-2xl border border-black/8 bg-white p-4 text-left shadow-[0_8px_25px_rgba(26,52,42,0.04)] transition hover:-translate-y-0.5 hover:border-[#789589] disabled:cursor-not-allowed disabled:opacity-45">
+            <button key={cartKey(product)} onClick={() => add(product)} disabled={product.quantity <= 0} className="rounded-2xl border border-black/8 bg-white p-4 text-left shadow-[0_8px_25px_rgba(26,52,42,0.04)] transition hover:-translate-y-0.5 hover:border-[#789589] disabled:cursor-not-allowed disabled:opacity-45">
               <p className="font-bold">{product.name}</p><p className="mt-1 text-xs text-[#76847c]">{product.sku || product.barcode || "Sin código"}</p>
               <div className="mt-5 flex items-end justify-between"><span className="text-lg font-bold">{currency} {rulePrice(product,1,priceRules).toFixed(2)}</span><span className={`text-xs font-semibold ${product.quantity > 0 ? "text-[#39705b]" : "text-red-700"}`}>Stock {product.quantity}</span></div>
             </button>
@@ -56,10 +56,10 @@ export function SaleTerminal({ products, customers, priceRules, currency, initia
         <div className="flex items-center gap-3 border-b border-black/8 p-5"><span className="grid size-10 place-items-center rounded-xl bg-[#163f32] text-[#d7f36b]"><ShoppingCart size={20} /></span><div><h2 className="font-bold">Venta actual</h2><p className="text-xs text-[#728078]">{cart.length} productos diferentes</p></div></div>
         <div className="max-h-[340px] divide-y divide-black/8 overflow-y-auto">
           {!cart.length && <p className="px-5 py-12 text-center text-sm text-[#7a8880]">Selecciona productos del catálogo.</p>}
-          {cart.map((item) => {const unitPrice=rulePrice(item,item.cartQuantity,priceRules);return <div key={item.id} className="p-4"><div className="flex justify-between gap-3"><div><p className="text-sm font-bold">{item.name}</p><p className="text-xs text-[#75837b]">{currency} {unitPrice.toFixed(2)} c/u{unitPrice!==item.price?" · regla aplicada":""}</p></div><button onClick={() => setCart((current) => current.filter((line) => line.id !== item.id))} aria-label={`Quitar ${item.name}`} className="text-red-700"><Trash2 size={16} /></button></div><div className="mt-3 flex items-center justify-between"><div className="flex items-center rounded-lg border border-black/10"><button onClick={() => changeQuantity(item.id, -1)} className="p-2"><Minus size={14} /></button><span className="min-w-9 text-center text-sm font-bold">{item.cartQuantity}</span><button onClick={() => changeQuantity(item.id, 1)} className="p-2"><Plus size={14} /></button></div><span className="font-bold">{currency} {(unitPrice * item.cartQuantity * (1 + item.taxRate)).toFixed(2)}</span></div></div>})}
+          {cart.map((item) => {const unitPrice=rulePrice(item,item.cartQuantity,priceRules),key=cartKey(item);return <div key={key} className="p-4"><div className="flex justify-between gap-3"><div><p className="text-sm font-bold">{item.name}</p><p className="text-xs text-[#75837b]">{currency} {unitPrice.toFixed(2)} c/u{unitPrice!==item.price?" · regla aplicada":""}</p></div><button onClick={() => setCart((current) => current.filter((line) => cartKey(line) !== key))} aria-label={`Quitar ${item.name}`} className="text-red-700"><Trash2 size={16} /></button></div><div className="mt-3 flex items-center justify-between"><div className="flex items-center rounded-lg border border-black/10"><button onClick={() => changeQuantity(key, -1)} className="p-2"><Minus size={14} /></button><span className="min-w-9 text-center text-sm font-bold">{item.cartQuantity}</span><button onClick={() => changeQuantity(key, 1)} className="p-2"><Plus size={14} /></button></div><span className="font-bold">{currency} {(unitPrice * item.cartQuantity * (1 + item.taxRate)).toFixed(2)}</span></div></div>})}
         </div>
         <form action={action} className="space-y-4 border-t border-black/8 p-5">
-          <input type="hidden" name="items" value={JSON.stringify(cart.map((item) => ({ product_id: item.id, quantity: item.cartQuantity })))} />
+          <input type="hidden" name="items" value={JSON.stringify(cart.map((item) => ({ product_id: item.id,variant_id:item.variantId, quantity: item.cartQuantity })))} />
           <input type="hidden" name="quoteId" value={quoteId} />
           <input type="hidden" name="discountType" value={discountType} />
           <label className="block"><span className="mb-1.5 block text-xs font-semibold text-[#617067]">Cliente</span><select name="customerId" defaultValue={initialCustomerId} className="h-11 w-full rounded-xl border border-black/10 bg-white px-3 outline-none"><option value="">Consumidor final</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}{customer.taxId ? ` · ${customer.taxId}` : ""}{customer.availableCredit == null ? " · sin límite" : ` · disponible ${currency} ${customer.availableCredit.toFixed(2)}`}</option>)}</select></label>
@@ -74,4 +74,5 @@ export function SaleTerminal({ products, customers, priceRules, currency, initia
   );
 }
 
-function rulePrice(product:Product,quantity:number,rules:PriceRule[]){const now=Date.now(),rule=rules.find(item=>item.minimumQuantity<=quantity&&(!item.starts_at||new Date(item.starts_at).getTime()<=now)&&(!item.ends_at||new Date(item.ends_at).getTime()>now)&&(item.product_id===product.id||item.category_id===product.categoryId||(item.tag_id!==null&&product.tagIds.includes(item.tag_id))||(!item.product_id&&!item.category_id&&!item.tag_id)));if(!rule)return product.price;const price=rule.adjustment==="percent_discount"?product.price*(1-rule.value/100):rule.adjustment==="fixed_discount"?product.price-rule.value:rule.value;return Math.max(0,Math.round(price*100)/100)}
+function rulePrice(product:Product,quantity:number,rules:PriceRule[]){if(product.variantId)return product.price;const now=Date.now(),rule=rules.find(item=>item.minimumQuantity<=quantity&&(!item.starts_at||new Date(item.starts_at).getTime()<=now)&&(!item.ends_at||new Date(item.ends_at).getTime()>now)&&(item.product_id===product.id||item.category_id===product.categoryId||(item.tag_id!==null&&product.tagIds.includes(item.tag_id))||(!item.product_id&&!item.category_id&&!item.tag_id)));if(!rule)return product.price;const price=rule.adjustment==="percent_discount"?product.price*(1-rule.value/100):rule.adjustment==="fixed_discount"?product.price-rule.value:rule.value;return Math.max(0,Math.round(price*100)/100)}
+function cartKey(product:Pick<Product,"id"|"variantId">){return `${product.id}:${product.variantId??"base"}`}
