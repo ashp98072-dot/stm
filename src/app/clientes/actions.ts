@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { canManageCustomers, getOrganizationContext } from "@/lib/auth/organization";
 
@@ -56,9 +57,9 @@ const customerIdSchema = z.uuid();
 export async function updateCustomer(formData: FormData) {
   const id = customerIdSchema.safeParse(formData.get("customerId"));
   const parsed = parseCustomer(formData);
-  if (!id.success || !parsed.success) return;
+  if (!id.success || !parsed.success) redirect("/clientes?error=invalid");
   const context = await getOrganizationContext();
-  if (!canManageCustomers(context.role)) return;
+  if (!canManageCustomers(context.role)) redirect("/clientes?error=permissions");
 
   const updates = {
     first_name: parsed.data.firstName, last_name: parsed.data.lastName,
@@ -67,16 +68,20 @@ export async function updateCustomer(formData: FormData) {
     address: parsed.data.address, notes: parsed.data.notes,
     ...(["owner","admin","manager"].includes(context.role) ? { credit_limit: parsed.data.creditLimit } : {}),
   };
-  await context.supabase.from("customers").update(updates).eq("id", id.data).eq("organization_id", context.organization.id);
+  const { data, error } = await context.supabase.from("customers").update(updates).eq("id", id.data).eq("organization_id", context.organization.id).eq("active", true).select("id").maybeSingle();
+  if (error || !data) redirect("/clientes?error=update");
   revalidatePath("/clientes");
+  redirect("/clientes?updated=1");
 }
 
 export async function deactivateCustomer(formData: FormData) {
   const id = customerIdSchema.safeParse(formData.get("customerId"));
-  if (!id.success) return;
+  if (!id.success) redirect("/clientes?error=invalid");
   const context = await getOrganizationContext();
-  if (!canManageCustomers(context.role)) return;
-  await context.supabase.from("customers").update({ active: false }).eq("id", id.data).eq("organization_id", context.organization.id);
+  if (!canManageCustomers(context.role)) redirect("/clientes?error=permissions");
+  const { data, error } = await context.supabase.from("customers").update({ active: false }).eq("id", id.data).eq("organization_id", context.organization.id).eq("active", true).select("id").maybeSingle();
+  if (error || !data) redirect("/clientes?error=deactivate");
   revalidatePath("/");
   revalidatePath("/clientes");
+  redirect("/clientes?deactivated=1");
 }

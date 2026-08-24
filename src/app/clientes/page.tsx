@@ -9,7 +9,10 @@ const inputClass = "h-10 w-full rounded-lg border border-black/10 bg-white px-3 
 
 export default async function CustomersPage({ searchParams }: PageProps<"/clientes">) {
   const context = await getOrganizationContext();
-  const query = String((await searchParams).q ?? "").trim();
+  const params = await searchParams;
+  const query = String(params.q ?? "").trim();
+  const notice = params.updated === "1" ? "Cliente actualizado correctamente." : params.deactivated === "1" ? "Cliente desactivado correctamente." : null;
+  const alert = typeof params.error === "string" ? (params.error === "permissions" ? "No tienes permiso para modificar clientes." : params.error === "invalid" ? "Los datos del cliente no son válidos." : params.error === "deactivate" ? "No se pudo desactivar el cliente." : "No se pudo actualizar el cliente.") : null;
   const safeQuery = query.replace(/[,().%_]/g, " ").trim();
   let customersQuery = context.supabase.from("customers")
     .select("id, first_name, last_name, company_name, email, phone, tax_id, address, notes, credit_limit, created_at")
@@ -25,6 +28,8 @@ export default async function CustomersPage({ searchParams }: PageProps<"/client
     <main className="min-h-screen bg-[#f4f5f1] text-[#17251f]">
       <header className="bg-[#163f32] text-white"><div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10"><div><p className="text-lg font-bold">{context.organization.name}</p><p className="text-xs text-white/60">Directorio de clientes</p></div><Link href="/" className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/20"><ArrowLeft size={16} /> Panel</Link></div></header>
       <div className="mx-auto max-w-7xl px-6 py-9 lg:px-10">
+        {notice && <p className="mb-5 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{notice}</p>}
+        {alert && <p className="mb-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-800">{alert}</p>}
         <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div><p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Personas</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Clientes</h1><p className="mt-2 text-[#68766f]">{customers?.length ?? 0} clientes activos</p></div>
           <form className="flex h-11 min-w-72 items-center gap-2 rounded-xl border border-black/10 bg-white px-3"><Search size={18} className="text-[#75827b]" /><input name="q" defaultValue={query} className="w-full bg-transparent outline-none" placeholder="Nombre, teléfono, NIT…" /></form>

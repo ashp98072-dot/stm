@@ -1,4 +1,63 @@
 "use server";
-import{revalidatePath}from"next/cache";import{z}from"zod";import{canManageInventory,getOrganizationContext}from"@/lib/auth/organization";
-const optional=(max:number)=>z.string().trim().max(max).transform(v=>v||null);const schema=z.object({id:z.uuid(),name:z.string().trim().min(2).max(160),contactName:optional(120),email:optional(254),phone:optional(40),taxId:optional(40),address:optional(300),creditLimit:z.string().trim().transform(v=>v?Number(v):null).pipe(z.number().min(0).max(999999999999).nullable())});
-export async function updateSupplier(formData:FormData){const p=schema.safeParse({id:formData.get("id"),name:formData.get("name"),contactName:formData.get("contactName"),email:formData.get("email"),phone:formData.get("phone"),taxId:formData.get("taxId"),address:formData.get("address"),creditLimit:formData.get("creditLimit")});if(!p.success)return;const c=await getOrganizationContext();if(!canManageInventory(c.role))return;await c.supabase.from("suppliers").update({name:p.data.name,contact_name:p.data.contactName,email:p.data.email,phone:p.data.phone,tax_id:p.data.taxId,address:p.data.address,credit_limit:p.data.creditLimit}).eq("id",p.data.id).eq("organization_id",c.organization.id);revalidatePath("/proveedores");revalidatePath("/compras")}
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import {
+  canManageInventory,
+  getOrganizationContext,
+} from "@/lib/auth/organization";
+const optional = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => v || null);
+const schema = z.object({
+  id: z.uuid(),
+  name: z.string().trim().min(2).max(160),
+  contactName: optional(120),
+  email: optional(254),
+  phone: optional(40),
+  taxId: optional(40),
+  address: optional(300),
+  creditLimit: z
+    .string()
+    .trim()
+    .transform((v) => (v ? Number(v) : null))
+    .pipe(z.number().min(0).max(999999999999).nullable()),
+});
+export async function updateSupplier(formData: FormData) {
+  const p = schema.safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    contactName: formData.get("contactName"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    taxId: formData.get("taxId"),
+    address: formData.get("address"),
+    creditLimit: formData.get("creditLimit"),
+  });
+  if (!p.success) redirect("/proveedores?error=invalid");
+  const c = await getOrganizationContext();
+  if (!canManageInventory(c.role)) redirect("/proveedores?error=permissions");
+  const { data, error } = await c.supabase
+    .from("suppliers")
+    .update({
+      name: p.data.name,
+      contact_name: p.data.contactName,
+      email: p.data.email,
+      phone: p.data.phone,
+      tax_id: p.data.taxId,
+      address: p.data.address,
+      credit_limit: p.data.creditLimit,
+    })
+    .eq("id", p.data.id)
+    .eq("organization_id", c.organization.id)
+    .eq("active", true)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) redirect("/proveedores?error=update");
+  revalidatePath("/proveedores");
+  revalidatePath("/compras");
+  redirect("/proveedores?updated=1");
+}
