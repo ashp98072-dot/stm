@@ -83,7 +83,7 @@ export async function createExpense(
       payment_method: parsed.data.paymentMethod,
       incurred_at: `${parsed.data.date}T12:00:00-06:00`,
     });
-  if (error) return { message: "No se pudo guardar el gasto." };
+  if (error) return { message: error.message.toLowerCase().includes("open cash register") ? "Abre tu caja antes de registrar un gasto en efectivo." : "No se pudo guardar el gasto." };
   revalidatePath("/gastos");
   revalidatePath("/reportes");
   return { message: "Gasto registrado correctamente.", success: true };

@@ -39,7 +39,7 @@ export async function receivePurchase(_state: PurchaseState, formData: FormData)
   if (!canManageInventory(context.role)) return { message: "No tienes permiso para recibir inventario." };
   if (parsed.data.paymentTerms === "credit" && !parsed.data.supplierId) return { message: "Selecciona un proveedor para comprar al crédito." };
   const { data, error } = await context.supabase.rpc("receive_purchase", { p_organization_id: context.organization.id, p_location_id: context.location.id, p_supplier_id: parsed.data.supplierId, p_reference: parsed.data.reference, p_payment_terms: parsed.data.paymentTerms, p_items: parsed.data.items });
-  if (error) { const detail=error.message.toLowerCase(); return { message: detail.includes("credit limit") ? "La compra supera el crédito disponible con este proveedor." : detail.includes("could not find") ? "Falta aplicar la migración de compras en Supabase." : "No se pudo completar la recepción." }; }
+  if (error) { const detail=error.message.toLowerCase(); return { message: detail.includes("credit limit") ? "La compra supera el crédito disponible con este proveedor." : detail.includes("open cash register") ? "Abre tu caja antes de registrar una compra en efectivo." : detail.includes("could not find") ? "Falta aplicar la migración de compras en Supabase." : "No se pudo completar la recepción." }; }
   revalidatePath("/"); revalidatePath("/inventario"); revalidatePath("/compras");
   redirect(`/compras?received=${data}`);
 }
