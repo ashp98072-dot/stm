@@ -15,7 +15,7 @@ const productSchema = z.object({
   cost: z.coerce.number().min(0, "El costo no puede ser negativo."),
   price: z.coerce.number().min(0, "El precio no puede ser negativo."),
   taxRate: z.coerce.number().min(0).max(100),
-  quantity: z.coerce.number(),
+  quantity: z.coerce.number().min(0, "El inventario inicial no puede ser negativo."),
   reorderPoint: z.coerce.number().min(0),
 });
 const productDetailsSchema = productSchema.omit({ quantity: true, reorderPoint: true });
@@ -33,40 +33,23 @@ export async function createProduct(
 
   const context = await getOrganizationContext();
   if (!canManageInventory(context.role)) return { message: "No tienes permiso para crear productos." };
-  const { supabase, organization, location, user } = context;
-
-  let categoryId: string | null = null;
-  if (parsed.data.category) {
-    const { data: existing } = await supabase.from("categories").select("id").eq("organization_id", organization.id).ilike("name", parsed.data.category).limit(1).maybeSingle();
-    if (existing) categoryId = existing.id;
-    else {
-      const { data: created, error } = await supabase.from("categories").insert({ organization_id: organization.id, name: parsed.data.category }).select("id").single();
-      if (error) return { message: "No se pudo crear la categoría." };
-      categoryId = created.id;
-    }
-  }
-
-  const { data: product, error: productError } = await supabase.from("products").insert({
-    organization_id: organization.id, category_id: categoryId, name: parsed.data.name,
-    sku: parsed.data.sku, barcode: parsed.data.barcode, cost: parsed.data.cost, price: parsed.data.price,
-    tax_rate: parsed.data.taxRate / 100, track_inventory: true,
-  }).select("id").single();
-  if (productError) {
-    if (productError.code === "23505") return { message: "El SKU o código de barras ya está registrado." };
-    return { message: "No se pudo guardar el producto." };
-  }
-
-  const { error: inventoryError } = await supabase.from("inventory_levels").insert({
-    organization_id: organization.id, location_id: location.id, product_id: product.id,
-    quantity: parsed.data.quantity, reorder_point: parsed.data.reorderPoint,
+  const { error } = await context.supabase.rpc("create_inventory_product", {
+    p_organization_id: context.organization.id,
+    p_location_id: context.location.id,
+    p_name: parsed.data.name,
+    p_category_name: parsed.data.category,
+    p_sku: parsed.data.sku,
+    p_barcode: parsed.data.barcode,
+    p_cost: parsed.data.cost,
+    p_price: parsed.data.price,
+    p_tax_rate: parsed.data.taxRate / 100,
+    p_quantity: parsed.data.quantity,
+    p_reorder_point: parsed.data.reorderPoint,
   });
-  if (inventoryError) return { message: "Producto creado, pero no se pudo establecer su inventario." };
-
-  if (parsed.data.quantity !== 0) {
-    await supabase.from("inventory_movements").insert({
-      organization_id: organization.id, location_id: location.id, product_id: product.id,
-      quantity_delta: parsed.data.quantity, reason: "Inventario inicial", performed_by: user.id,
-    });
+  if (error) {
+    if (error.code === "23505") return { message: "El SKU, código de barras o categoría ya está registrado." };
+    if (error.message.toLowerCase().includes("could not find")) return { message: "Falta aplicar la migración de creación de productos." };
+    return { message: "No se pudo guardar el producto ni su inventario." };
   }
   revalidatePath("/");
   revalidatePath("/inventario");
