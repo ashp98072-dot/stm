@@ -36,6 +36,7 @@ const modules = [
   { title: "Devoluciones a proveedores", description: "Regresa mercancía y ajusta inventario y saldos.", icon: ArrowLeftRight, href: "/devoluciones-compras" },
   { title: "Rentabilidad", description: "Compara ingresos, costos, utilidad y margen por producto.", icon: CircleDollarSign, href: "/reportes/rentabilidad" },
   { title: "Reporte de caja", description: "Supervisa cierres, faltantes y sobrantes por turno.", icon: Landmark, href: "/reportes/caja" },
+  { title: "Comparar sucursales", description: "Contrasta ventas, compras, gastos e inventario por sede.", icon: Building2, href: "/reportes/sucursales" },
 ];
 
 export default async function Home() {
