@@ -45,7 +45,7 @@ export async function completeSale(
   };
   const { data, error } = parsed.data.quoteId
     ? await context.supabase.rpc("complete_quoted_sale", { ...saleArguments, p_quote_id: parsed.data.quoteId })
-    : await context.supabase.rpc("complete_sale", saleArguments);
+    : await context.supabase.rpc("complete_priced_sale", saleArguments);
   if (error) {
     const detail = error.message.toLowerCase();
     if (detail.includes("insufficient stock")) return { message: "No hay existencia suficiente para uno de los productos." };
