@@ -39,6 +39,15 @@ const modules = [
   { title: "Comparar sucursales", description: "Contrasta ventas, compras, gastos e inventario por sede.", icon: Building2, href: "/reportes/sucursales" },
 ];
 
+const moduleGroups = [
+  { title: "Ventas y clientes", description: "Atención al cliente y operaciones comerciales.", paths: ["/ventas", "/clientes", "/cotizaciones", "/devoluciones", "/devoluciones/historial"] },
+  { title: "Inventario", description: "Existencias, movimientos y abastecimiento interno.", paths: ["/inventario", "/movimientos", "/transferencias", "/inventario/reposicion", "/inventario/valoracion"] },
+  { title: "Compras y proveedores", description: "Recepciones, proveedores y obligaciones de compra.", paths: ["/compras", "/compras/historial", "/proveedores", "/devoluciones-compras", "/cuentas-por-pagar"] },
+  { title: "Caja y finanzas", description: "Efectivo, créditos, gastos y vencimientos.", paths: ["/caja", "/creditos", "/gastos", "/vencimientos", "/antiguedad"] },
+  { title: "Análisis y control", description: "Reportes, alertas, auditoría y exportaciones.", paths: ["/reportes", "/reportes/impuestos", "/reportes/flujo-caja", "/reportes/compras", "/reportes/rentabilidad", "/reportes/caja", "/reportes/sucursales", "/alertas", "/auditoria", "/exportaciones"] },
+  { title: "Administración", description: "Equipo, sucursales y preferencias de la empresa.", paths: ["/equipo", "/sucursales", "/configuracion"] },
+];
+
 export default async function Home() {
   const { supabase, user, organization, location } = await getOrganizationContext();
   const organizationId = organization.id;
@@ -99,16 +108,8 @@ export default async function Home() {
         </section>
 
         <section className="mt-10">
-          <div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-bold">Accesos rápidos</h2><span className="rounded-full border border-[#bdc8c1] px-3 py-1 text-xs font-semibold text-[#617069]">MVP · Fase 1</span></div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {modules.map(({ title, description, icon: Icon, href }) => (
-              <Link key={title} href={href} className="group flex items-center gap-5 rounded-2xl border border-black/8 bg-white p-5 transition hover:-translate-y-0.5 hover:border-[#7e9d91] hover:shadow-lg">
-                <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#163f32] text-[#d7f36b]"><Icon size={22} /></span>
-                <span className="min-w-0 flex-1"><span className="block font-bold">{title}</span><span className="mt-1 block text-sm text-[#708078]">{description}</span></span>
-                <ArrowUpRight className="text-[#92a099] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" size={20} />
-              </Link>
-            ))}
-          </div>
+          <div className="mb-6 flex items-center justify-between"><div><h2 className="text-xl font-bold">Módulos</h2><p className="mt-1 text-sm text-[#708078]">Accesos organizados por área de trabajo.</p></div><span className="rounded-full border border-[#bdc8c1] px-3 py-1 text-xs font-semibold text-[#617069]">{modules.length} herramientas</span></div>
+          <div className="space-y-8">{moduleGroups.map((group) => <section key={group.title}><div className="mb-3"><h3 className="font-bold text-[#285645]">{group.title}</h3><p className="text-sm text-[#7a8780]">{group.description}</p></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{group.paths.map((path) => modules.find((module) => module.href === path)).filter((module): module is typeof modules[number] => Boolean(module)).map(({ title, description, icon: Icon, href }) => <Link key={title} href={href} className="group flex items-center gap-4 rounded-2xl border border-black/8 bg-white p-4 transition hover:-translate-y-0.5 hover:border-[#7e9d91] hover:shadow-lg"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#163f32] text-[#d7f36b]"><Icon size={20}/></span><span className="min-w-0 flex-1"><span className="block font-bold">{title}</span><span className="mt-1 block text-xs leading-5 text-[#708078]">{description}</span></span><ArrowUpRight className="shrink-0 text-[#92a099] transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" size={18}/></Link>)}</div></section>)}</div>
         </section>
       </div>
     </main>
