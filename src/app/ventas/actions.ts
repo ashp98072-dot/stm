@@ -33,7 +33,7 @@ export async function completeSale(
 
   const context = await getOrganizationContext();
   if (!canCreateSales(context.role)) return { message: "No tienes permiso para realizar ventas." };
-  const { data, error } = await context.supabase.rpc("complete_sale", {
+  const saleArguments = {
     p_organization_id: context.organization.id,
     p_location_id: context.location.id,
     p_customer_id: parsed.data.customerId,
@@ -42,15 +42,18 @@ export async function completeSale(
     p_amount_received: parsed.data.amountReceived,
     p_discount_type: parsed.data.discountType,
     p_discount_value: parsed.data.discountValue,
-  });
+  };
+  const { data, error } = parsed.data.quoteId
+    ? await context.supabase.rpc("complete_quoted_sale", { ...saleArguments, p_quote_id: parsed.data.quoteId })
+    : await context.supabase.rpc("complete_sale", saleArguments);
   if (error) {
     const detail = error.message.toLowerCase();
     if (detail.includes("insufficient stock")) return { message: "No hay existencia suficiente para uno de los productos." };
     if (detail.includes("insufficient payment")) return { message: "El monto recibido no cubre el total." };
     if (detail.includes("credit limit")) return { message: "La venta supera el límite de crédito disponible del cliente." };
+    if (detail.includes("quote")) return { message: "La cotización ya no está disponible o no corresponde a esta sucursal y cliente." };
     if (detail.includes("could not find the function")) return { message: "Falta aplicar la migración de ventas en Supabase." };
     return { message: "No se pudo completar la venta. Intenta nuevamente." };
   }
-  if (parsed.data.quoteId) await context.supabase.rpc("convert_quote", { p_quote_id: parsed.data.quoteId, p_sale_id: data });
   redirect(`/ventas/recibo/${data}`);
 }
