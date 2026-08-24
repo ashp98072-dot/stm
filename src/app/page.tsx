@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ArrowLeftRight, ArrowUpRight, BellRing, Boxes, Building2, CalendarClock, CircleDollarSign, Download, FileText, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Truck, UserCog, Users, WalletCards } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, BellRing, Boxes, Building2, CalendarClock, CircleDollarSign, Download, FileText, HandCoins, History, Landmark, LogOut, PackageSearch, ReceiptText, Settings, ShoppingCart, Tags, Truck, UserCog, Users, WalletCards } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { getOrganizationContext } from "@/lib/auth/organization";
 
 const modules = [
   { title: "Nueva venta", description: "Abre una venta y agrega productos al carrito.", icon: ShoppingCart, href: "/ventas" },
   { title: "Inventario", description: "Administra existencias por sucursal.", icon: Boxes, href: "/inventario" },
+  { title: "Catálogos", description: "Administra categorías, fabricantes y etiquetas.", icon: Tags, href: "/inventario/catalogos" },
   { title: "Clientes", description: "Consulta y registra clientes.", icon: Users, href: "/clientes" },
   { title: "Reportes", description: "Revisa ventas, pagos y movimientos.", icon: ReceiptText, href: "/reportes" },
   { title: "Compras", description: "Recibe mercancía y administra proveedores.", icon: Truck, href: "/compras" },
@@ -42,7 +43,7 @@ const modules = [
 
 const moduleGroups = [
   { title: "Ventas y clientes", description: "Atención al cliente y operaciones comerciales.", paths: ["/ventas", "/clientes", "/cotizaciones", "/devoluciones", "/devoluciones/historial"] },
-  { title: "Inventario", description: "Existencias, movimientos y abastecimiento interno.", paths: ["/inventario", "/movimientos", "/transferencias", "/inventario/reposicion", "/inventario/valoracion"] },
+  { title: "Inventario", description: "Existencias, movimientos y abastecimiento interno.", paths: ["/inventario", "/inventario/catalogos", "/movimientos", "/transferencias", "/inventario/reposicion", "/inventario/valoracion"] },
   { title: "Compras y proveedores", description: "Recepciones, proveedores y obligaciones de compra.", paths: ["/compras", "/compras/historial", "/proveedores", "/devoluciones-compras", "/cuentas-por-pagar"] },
   { title: "Caja y finanzas", description: "Efectivo, créditos, gastos y vencimientos.", paths: ["/caja", "/creditos", "/gastos", "/vencimientos", "/antiguedad"] },
   { title: "Análisis y control", description: "Reportes, alertas, auditoría y exportaciones.", paths: ["/reportes", "/reportes/impuestos", "/reportes/flujo-caja", "/reportes/compras", "/reportes/rentabilidad", "/reportes/caja", "/reportes/sucursales", "/reportes/equipo", "/alertas", "/auditoria", "/exportaciones"] },
@@ -51,8 +52,8 @@ const moduleGroups = [
 
 const restrictedPaths: Record<string, string[]> = {
   cashier: ["/ventas", "/clientes", "/cotizaciones", "/devoluciones", "/devoluciones/historial", "/caja", "/creditos", "/sucursales", "/configuracion"],
-  inventory: ["/inventario", "/movimientos", "/transferencias", "/inventario/reposicion", "/inventario/valoracion", "/compras", "/compras/historial", "/proveedores", "/devoluciones-compras", "/cuentas-por-pagar", "/sucursales", "/configuracion"],
-  viewer: ["/clientes", "/devoluciones/historial", "/inventario", "/movimientos", "/inventario/valoracion", "/compras/historial", "/proveedores", "/cuentas-por-pagar", "/creditos", "/antiguedad", "/alertas", "/auditoria", "/exportaciones", "/reportes", "/reportes/impuestos", "/reportes/flujo-caja", "/reportes/compras", "/reportes/rentabilidad", "/reportes/caja", "/reportes/sucursales", "/reportes/equipo", "/sucursales", "/configuracion"],
+  inventory: ["/inventario", "/inventario/catalogos", "/movimientos", "/transferencias", "/inventario/reposicion", "/inventario/valoracion", "/compras", "/compras/historial", "/proveedores", "/devoluciones-compras", "/cuentas-por-pagar", "/sucursales", "/configuracion"],
+  viewer: ["/clientes", "/devoluciones/historial", "/inventario", "/inventario/catalogos", "/movimientos", "/inventario/valoracion", "/compras/historial", "/proveedores", "/cuentas-por-pagar", "/creditos", "/antiguedad", "/alertas", "/auditoria", "/exportaciones", "/reportes", "/reportes/impuestos", "/reportes/flujo-caja", "/reportes/compras", "/reportes/rentabilidad", "/reportes/caja", "/reportes/sucursales", "/reportes/equipo", "/sucursales", "/configuracion"],
 };
 
 export default async function Home() {
