@@ -90,36 +90,33 @@ export async function updateProduct(formData: FormData) {
     barcode: formData.get("barcode"), cost: formData.get("cost"), price: formData.get("price"),
     taxRate: formData.get("taxRate"),
   });
-  if (!id.success || !parsed.success) return;
+  if (!id.success || !parsed.success) redirect("/inventario?error=invalid-product");
   const context = await getOrganizationContext();
-  if (!canManageInventory(context.role)) return;
-
-  let categoryId: string | null = null;
-  if (parsed.data.category) {
-    const { data: existing } = await context.supabase.from("categories").select("id")
-      .eq("organization_id", context.organization.id).ilike("name", parsed.data.category).limit(1).maybeSingle();
-    if (existing) categoryId = existing.id;
-    else {
-      const { data: created } = await context.supabase.from("categories").insert({ organization_id: context.organization.id, name: parsed.data.category }).select("id").single();
-      categoryId = created?.id ?? null;
-    }
-  }
-  await context.supabase.from("products").update({
-    name: parsed.data.name, category_id: categoryId, sku: parsed.data.sku, barcode: parsed.data.barcode,
-    cost: parsed.data.cost, price: parsed.data.price, tax_rate: parsed.data.taxRate / 100,
-  }).eq("id", id.data).eq("organization_id", context.organization.id);
+  if (!canManageInventory(context.role)) redirect("/inventario?error=permissions");
+  const { error } = await context.supabase.rpc("update_inventory_product", {
+    p_product_id: id.data, p_organization_id: context.organization.id,
+    p_name: parsed.data.name, p_category_name: parsed.data.category,
+    p_sku: parsed.data.sku, p_barcode: parsed.data.barcode,
+    p_cost: parsed.data.cost, p_price: parsed.data.price,
+    p_tax_rate: parsed.data.taxRate / 100,
+  });
+  if (error) redirect(`/inventario?error=${error.code === "23505" ? "duplicate-product" : "product"}`);
   revalidatePath("/inventario");
   revalidatePath("/ventas");
+  redirect("/inventario?product=updated");
 }
 
 export async function deactivateProduct(formData: FormData) {
   const id = z.uuid().safeParse(formData.get("productId"));
-  if (!id.success) return;
+  if (!id.success) redirect("/inventario?error=invalid-product");
   const context = await getOrganizationContext();
-  if (!canManageInventory(context.role)) return;
-  await context.supabase.from("products").update({ active: false })
-    .eq("id", id.data).eq("organization_id", context.organization.id);
+  if (!canManageInventory(context.role)) redirect("/inventario?error=permissions");
+  const { error } = await context.supabase.rpc("deactivate_inventory_product", {
+    p_product_id: id.data, p_organization_id: context.organization.id,
+  });
+  if (error) redirect("/inventario?error=deactivate");
   revalidatePath("/");
   revalidatePath("/inventario");
   revalidatePath("/ventas");
+  redirect("/inventario?product=deactivated");
 }

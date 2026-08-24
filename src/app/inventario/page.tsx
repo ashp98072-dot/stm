@@ -12,8 +12,8 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   const context = await getOrganizationContext();
   const params = await searchParams;
   const query = String(params.q ?? "").trim();
-  const notice = params.stock === "updated" ? "Existencia actualizada correctamente." : null;
-  const alert = typeof params.error === "string" ? (params.error === "permissions" ? "No tienes permiso para ajustar inventario." : params.error === "invalid-stock" ? "La existencia y el mínimo deben ser valores válidos no negativos." : "No se pudo actualizar la existencia.") : null;
+  const notice = params.stock === "updated" ? "Existencia actualizada correctamente." : params.product === "updated" ? "Producto actualizado correctamente." : params.product === "deactivated" ? "Producto desactivado correctamente." : null;
+  const alert = typeof params.error === "string" ? (params.error === "permissions" ? "No tienes permiso para modificar inventario." : params.error === "invalid-stock" ? "La existencia y el mínimo deben ser valores válidos no negativos." : params.error === "invalid-product" ? "Los datos del producto no son válidos." : params.error === "duplicate-product" ? "El SKU o código de barras ya está registrado." : params.error === "deactivate" ? "No se pudo desactivar el producto." : params.error === "product" ? "No se pudo actualizar el producto." : "No se pudo actualizar la existencia.") : null;
   const safeQuery = query.replace(/[,().%_]/g, " ").trim();
   let productsQuery = context.supabase
     .from("products")
