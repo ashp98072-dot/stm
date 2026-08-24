@@ -1,0 +1,41 @@
+import Link from "next/link";
+import { ArrowLeft, CalendarDays, CircleDollarSign, PackageSearch, ReceiptText, Truck } from "lucide-react";
+import { getOrganizationContext } from "@/lib/auth/organization";
+
+const pattern = /^\d{4}-\d{2}-\d{2}$/;
+
+export default async function PurchaseReport({ searchParams }: PageProps<"/reportes/compras">) {
+  const context = await getOrganizationContext();
+  if (!["owner", "admin", "manager", "inventory", "viewer"].includes(context.role)) return <main>Acceso restringido</main>;
+  const params = await searchParams, today = new Date().toLocaleDateString("en-CA", { timeZone: context.organization.timezone });
+  const from = typeof params.from === "string" && pattern.test(params.from) ? params.from : `${today.slice(0, 8)}01`;
+  const to = typeof params.to === "string" && pattern.test(params.to) ? params.to : today;
+  const { data: purchases, error } = await context.supabase.from("purchases")
+    .select("id,reference,payment_terms,subtotal,tax_total,total,received_at,supplier:suppliers(id,name),purchase_items(product_id,product_name,sku,quantity,line_total)")
+    .eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("status", "received")
+    .gte("received_at", `${from}T00:00:00-06:00`).lte("received_at", `${to}T23:59:59.999-06:00`).order("received_at", { ascending: false }).limit(500);
+  if (error) throw new Error("No se pudo cargar el reporte de compras.");
+  const rows = purchases ?? [], total = rows.reduce((sum, item) => sum + Number(item.total), 0), taxes = rows.reduce((sum, item) => sum + Number(item.tax_total), 0);
+  const cash = rows.filter((item) => item.payment_terms === "cash").reduce((sum, item) => sum + Number(item.total), 0), credit = total - cash;
+  const suppliers = new Map<string, { id: string | null; total: number; count: number }>(), products = new Map<string, { name: string; sku: string | null; quantity: number; total: number }>();
+  rows.forEach((purchase) => {
+    const value = purchase.supplier as { id?: string; name?: string } | Array<{ id?: string; name?: string }> | null, supplier = Array.isArray(value) ? value[0] : value;
+    const name = supplier?.name ?? "Sin proveedor", current = suppliers.get(name) ?? { id: supplier?.id ?? null, total: 0, count: 0 };
+    suppliers.set(name, { ...current, total: current.total + Number(purchase.total), count: current.count + 1 });
+    (purchase.purchase_items as Array<{ product_id: string | null; product_name: string; sku: string | null; quantity: string | number; line_total: string | number }> ?? []).forEach((item) => {
+      const key = item.product_id ?? `${item.product_name}-${item.sku}`, existing = products.get(key) ?? { name: item.product_name, sku: item.sku, quantity: 0, total: 0 };
+      products.set(key, { ...existing, quantity: existing.quantity + Number(item.quantity), total: existing.total + Number(item.line_total) });
+    });
+  });
+  const currency = context.organization.currency_code === "GTQ" ? "Q" : context.organization.currency_code;
+  return <main className="min-h-screen bg-[#f4f5f1] text-[#17251f]"><header className="bg-[#163f32] text-white"><div className="mx-auto flex max-w-7xl justify-between px-6 py-5 lg:px-10"><div><p className="font-bold">{context.organization.name}</p><p className="text-xs text-white/60">Compras · {context.location.name}</p></div><Link href="/" className="flex items-center gap-2"><ArrowLeft size={16}/>Panel</Link></div></header><div className="mx-auto max-w-7xl space-y-7 px-6 py-9 lg:px-10">
+    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><p className="text-sm font-bold uppercase tracking-[.18em] text-[#517064]">Abastecimiento</p><h1 className="mt-2 text-4xl font-bold">Reporte de compras</h1><p className="mt-2 text-[#68766f]">Recepciones confirmadas en el período seleccionado.</p></div><form className="flex items-end gap-2 rounded-xl bg-white p-3"><DateField label="Desde" name="from" value={from}/><DateField label="Hasta" name="to" value={to}/><button className="h-10 rounded-lg bg-[#163f32] px-4 text-sm font-bold text-white">Aplicar</button></form></div>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><Metric label="Total comprado" value={`${currency} ${total.toFixed(2)}`} icon={CircleDollarSign}/><Metric label="Compras" value={String(rows.length)} icon={ReceiptText}/><Metric label="Impuestos" value={`${currency} ${taxes.toFixed(2)}`} icon={ReceiptText}/><Metric label="Contado" value={`${currency} ${cash.toFixed(2)}`} icon={CircleDollarSign}/><Metric label="Crédito" value={`${currency} ${credit.toFixed(2)}`} icon={CircleDollarSign}/></section>
+    <div className="grid gap-6 lg:grid-cols-2"><Ranking title="Proveedores principales" icon={Truck}>{[...suppliers.entries()].sort((a,b)=>b[1].total-a[1].total).slice(0,10).map(([name,value])=><Link href={value.id?`/proveedores/${value.id}`:"/proveedores"} key={name} className="flex justify-between border-b p-4 last:border-0 hover:bg-[#f7f8f5]"><span><strong>{name}</strong><small className="block text-[#75837b]">{value.count} compras</small></span><strong>{currency} {value.total.toFixed(2)}</strong></Link>)}</Ranking><Ranking title="Productos más comprados" icon={PackageSearch}>{[...products.entries()].sort((a,b)=>b[1].total-a[1].total).slice(0,10).map(([key,value])=><div key={key} className="flex justify-between border-b p-4 last:border-0"><span><strong>{value.name}</strong><small className="block text-[#75837b]">{quantity(value.quantity)} unidades · {value.sku||"Sin SKU"}</small></span><strong>{currency} {value.total.toFixed(2)}</strong></div>)}</Ranking></div>
+    <section className="overflow-hidden rounded-2xl border border-black/8 bg-white"><h2 className="border-b p-5 font-bold">Recepciones</h2><div className="divide-y">{rows.map(p=><Link href={`/compras/${p.id}`} key={p.id} className="grid gap-2 p-4 hover:bg-[#f7f8f5] sm:grid-cols-[1fr_1fr_auto]"><strong>{p.reference||"Sin referencia"}</strong><span className="text-sm text-[#68766f]">{new Intl.DateTimeFormat("es-GT",{dateStyle:"medium",timeZone:context.organization.timezone}).format(new Date(p.received_at))} · {p.payment_terms==="credit"?"Crédito":"Contado"}</span><strong>{currency} {Number(p.total).toFixed(2)}</strong></Link>)}{!rows.length&&<p className="p-12 text-center text-[#75837b]">No hay compras en este período.</p>}</div></section>
+  </div></main>;
+}
+function Metric({label,value,icon:Icon}:{label:string;value:string;icon:typeof Truck}){return <article className="rounded-2xl border border-black/8 bg-white p-5"><div className="flex justify-between text-sm text-[#617069]"><span>{label}</span><Icon size={18}/></div><p className="mt-5 text-2xl font-bold">{value}</p></article>}
+function Ranking({title,icon:Icon,children}:{title:string;icon:typeof Truck;children:React.ReactNode}){return <section className="overflow-hidden rounded-2xl border border-black/8 bg-white"><h2 className="flex items-center gap-2 border-b p-5 font-bold"><Icon size={18}/>{title}</h2>{children}</section>}
+function DateField({label,name,value}:{label:string;name:string;value:string}){return <label><span className="mb-1 block text-xs font-semibold">{label}</span><span className="flex h-10 items-center gap-2 rounded-lg border border-black/10 px-2"><CalendarDays size={15}/><input type="date" name={name} defaultValue={value} className="bg-transparent text-sm outline-none"/></span></label>}
+function quantity(value:number){return value.toFixed(3).replace(/\.000$/,"").replace(/(\.\d*[1-9])0+$/,"$1")}

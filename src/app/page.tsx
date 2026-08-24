@@ -32,6 +32,7 @@ const modules = [
   { title: "Impuestos", description: "Resume débitos y créditos fiscales del período.", icon: ReceiptText, href: "/reportes/impuestos" },
   { title: "Flujo de caja", description: "Analiza entradas, salidas y neto por método.", icon: WalletCards, href: "/reportes/flujo-caja" },
   { title: "Reposición", description: "Prepara cantidades sugeridas para reabastecer stock bajo.", icon: PackageSearch, href: "/inventario/reposicion" },
+  { title: "Reporte de compras", description: "Analiza inversión, proveedores y productos adquiridos.", icon: Truck, href: "/reportes/compras" },
 ];
 
 export default async function Home() {
