@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Boxes, GitBranch, PackagePlus, Search } from "lucide-react";
+import { ArrowLeft, BadgePercent, Boxes, GitBranch, PackagePlus, Search } from "lucide-react";
 import { getOrganizationContext, canManageInventory } from "@/lib/auth/organization";
 import { ProductForm } from "./product-form";
 import { updateProduct, updateStock } from "./actions";
@@ -42,7 +42,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         {notice && <p className="mb-5 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{notice}</p>}
         {alert && <p className="mb-5 rounded-xl bg-red-50 p-4 text-sm font-semibold text-red-800">{alert}</p>}
         <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div><p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Catálogo</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Productos e inventario</h1><p className="mt-2 text-[#68766f]">{products?.length ?? 0} productos en {context.location.name}</p><Link href="/inventario/kits" className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-[#285645] hover:underline"><PackagePlus size={16}/>Administrar kits</Link></div>
+          <div><p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Catálogo</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Productos e inventario</h1><p className="mt-2 text-[#68766f]">{products?.length ?? 0} productos en {context.location.name}</p><div className="mt-3 flex flex-wrap gap-4"><Link href="/inventario/kits" className="inline-flex items-center gap-2 text-sm font-bold text-[#285645] hover:underline"><PackagePlus size={16}/>Administrar kits</Link><Link href="/inventario/reglas-precios" className="inline-flex items-center gap-2 text-sm font-bold text-[#285645] hover:underline"><BadgePercent size={16}/>Reglas de precios</Link></div></div>
           <form className="flex h-11 min-w-72 items-center gap-2 rounded-xl border border-black/10 bg-white px-3"><Search size={18} className="text-[#75827b]" /><input name="q" defaultValue={query} className="w-full bg-transparent outline-none" placeholder="Buscar nombre, SKU o código" /></form>
         </div>
 
