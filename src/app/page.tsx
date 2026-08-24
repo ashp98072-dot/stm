@@ -30,6 +30,7 @@ const modules = [
   { title: "Historial de compras", description: "Consulta e imprime recepciones de mercancía.", icon: PackageSearch, href: "/compras/historial" },
   { title: "Valoración", description: "Consulta costo, valor de venta y margen del inventario.", icon: CircleDollarSign, href: "/inventario/valoracion" },
   { title: "Impuestos", description: "Resume débitos y créditos fiscales del período.", icon: ReceiptText, href: "/reportes/impuestos" },
+  { title: "Flujo de caja", description: "Analiza entradas, salidas y neto por método.", icon: WalletCards, href: "/reportes/flujo-caja" },
 ];
 
 export default async function Home() {
