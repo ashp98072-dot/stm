@@ -7,16 +7,17 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   const context = await getOrganizationContext();
   const quoteId = typeof (await searchParams).quote === "string" ? (await searchParams).quote as string : "";
   const allowed = canCreateSales(context.role);
-  const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }, { data: creditMovements }] = await Promise.all([
+  const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }, { data: creditMovements }, {data:priceRules,error:rulesError}] = await Promise.all([
     context.supabase.from("products")
-      .select("id, name, sku, barcode, price, tax_rate, track_inventory, inventory_levels(quantity, location_id), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
+      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags(tag_id), inventory_levels(quantity, location_id), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
       .eq("organization_id", context.organization.id).eq("active", true).order("name"),
     context.supabase.from("customers").select("id, first_name, last_name, company_name, tax_id, credit_limit")
       .eq("organization_id", context.organization.id).eq("active", true).order("first_name"),
     context.supabase.from("sales").select("id, receipt_number, status, total, completed_at").eq("organization_id", context.organization.id).eq("location_id", context.location.id).in("status", ["completed", "voided"]).order("completed_at", { ascending: false }).limit(10),
     context.supabase.from("customer_account_movements").select("customer_id,type,amount").eq("organization_id", context.organization.id),
+    context.supabase.from("price_rules").select("id,product_id,category_id,tag_id,adjustment,value,minimum_quantity,priority,starts_at,ends_at").eq("organization_id",context.organization.id).eq("active",true).order("priority",{ascending:false}).order("minimum_quantity",{ascending:false}),
   ]);
-  if (productsError) throw new Error("No se pudo cargar el catálogo de venta.");
+  if (productsError||rulesError) throw new Error("No se pudo cargar el catálogo de venta.");
 
   const products = (rawProducts ?? []).map((product) => {
     const levels = (product.inventory_levels ?? []) as Array<{ quantity: number | string; location_id: string }>;
@@ -30,6 +31,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
     return {
       id: product.id, name: product.name, sku: product.sku, barcode: product.barcode,
       price: Number(product.price), taxRate: Number(product.tax_rate),
+      categoryId:product.category_id,tagIds:product.product_tags.map(tag=>tag.tag_id),
       quantity: kitQuantity ?? (product.track_inventory ? Number(level?.quantity ?? 0) : 999999),
     };
   });
@@ -50,7 +52,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
       <header className="bg-[#163f32] text-white"><div className="mx-auto flex max-w-[1500px] items-center justify-between px-6 py-5 lg:px-10"><div><p className="text-lg font-bold">{context.organization.name}</p><p className="text-xs text-white/60">Caja · {context.location.name}</p></div><Link href="/" className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/20"><ArrowLeft size={16} /> Panel</Link></div></header>
       <div className="mx-auto max-w-[1500px] px-6 py-8 lg:px-10">
         <div className="mb-6"><p className="text-sm font-bold uppercase tracking-[0.18em] text-[#517064]">Punto de venta</p><h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Nueva venta</h1></div>
-        {quote && <p className="mb-5 rounded-xl bg-[#eef5ef] px-4 py-3 text-sm font-semibold text-[#285645]">Cotización cargada. Confirma existencias, método de pago y total antes de cobrar.</p>}{allowed ? <SaleTerminal products={products} customers={customers} currency={currency} quoteId={quote?.id ?? ""} initialCustomerId={quote?.customer_id ?? ""} initialItems={quoteItems.flatMap((item)=>item.product_id?[{productId:item.product_id,quantity:Number(item.quantity)}]:[])} /> : <div className="rounded-2xl bg-white p-10 text-center font-semibold text-red-700">Tu rol no permite procesar ventas.</div>}
+        {quote && <p className="mb-5 rounded-xl bg-[#eef5ef] px-4 py-3 text-sm font-semibold text-[#285645]">Cotización cargada. Confirma existencias, método de pago y total antes de cobrar.</p>}{allowed ? <SaleTerminal products={products} customers={customers} priceRules={(priceRules??[]).map(rule=>({...rule,value:Number(rule.value),minimumQuantity:Number(rule.minimum_quantity)}))} currency={currency} quoteId={quote?.id ?? ""} initialCustomerId={quote?.customer_id ?? ""} initialItems={quoteItems.flatMap((item)=>item.product_id?[{productId:item.product_id,quantity:Number(item.quantity)}]:[])} /> : <div className="rounded-2xl bg-white p-10 text-center font-semibold text-red-700">Tu rol no permite procesar ventas.</div>}
         <section className="mt-7 overflow-hidden rounded-2xl border border-black/8 bg-white"><h2 className="border-b border-black/8 p-4 font-bold">Ventas recientes de la sucursal</h2><div className="divide-y divide-black/8">{!recentSales?.length && <p className="p-8 text-center text-sm text-[#728078]">Todavía no hay ventas.</p>}{recentSales?.map((sale) => <Link key={sale.id} href={`/ventas/recibo/${sale.id}`} className="grid gap-2 p-4 text-sm transition hover:bg-[#f6f7f4] sm:grid-cols-[1fr_1fr_auto]"><div><p className="font-mono font-bold text-[#285645]">{sale.receipt_number}</p><p className={`mt-1 text-xs font-bold ${sale.status === "voided" ? "text-red-700" : "text-emerald-700"}`}>{sale.status === "voided" ? "Anulada" : "Completada"}</p></div><p className="text-[#68766f]">{new Intl.DateTimeFormat("es-GT", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Guatemala" }).format(new Date(sale.completed_at))}</p><strong>{currency} {Number(sale.total).toFixed(2)}</strong></Link>)}</div></section>
       </div>
     </main>
