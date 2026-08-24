@@ -9,7 +9,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   const allowed = canCreateSales(context.role);
   const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }, { data: creditMovements }] = await Promise.all([
     context.supabase.from("products")
-      .select("id, name, sku, barcode, price, tax_rate, track_inventory, inventory_levels(quantity, location_id)")
+      .select("id, name, sku, barcode, price, tax_rate, track_inventory, inventory_levels(quantity, location_id), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
       .eq("organization_id", context.organization.id).eq("active", true).order("name"),
     context.supabase.from("customers").select("id, first_name, last_name, company_name, tax_id, credit_limit")
       .eq("organization_id", context.organization.id).eq("active", true).order("first_name"),
@@ -21,10 +21,16 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   const products = (rawProducts ?? []).map((product) => {
     const levels = (product.inventory_levels ?? []) as Array<{ quantity: number | string; location_id: string }>;
     const level = levels.find((item) => item.location_id === context.location.id);
+    const kit = product.product_kits?.find((item) => item.active);
+    const kitQuantity = kit ? Math.max(0, Math.floor(Math.min(...kit.product_kit_items.map((component) => {
+      const componentProduct = Array.isArray(component.product) ? component.product[0] : component.product;
+      const componentLevel = componentProduct?.inventory_levels?.find((item) => item.location_id === context.location.id);
+      return Number(componentLevel?.quantity ?? 0) / Number(component.quantity);
+    })))) : null;
     return {
       id: product.id, name: product.name, sku: product.sku, barcode: product.barcode,
       price: Number(product.price), taxRate: Number(product.tax_rate),
-      quantity: product.track_inventory ? Number(level?.quantity ?? 0) : 999999,
+      quantity: kitQuantity ?? (product.track_inventory ? Number(level?.quantity ?? 0) : 999999),
     };
   });
   const creditBalances = new Map<string, number>();
