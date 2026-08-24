@@ -7,7 +7,7 @@ import { createProduct, type InventoryActionState } from "./actions";
 const initialState: InventoryActionState = { message: "" };
 const inputClass = "h-11 w-full rounded-xl border border-black/10 bg-white px-3 outline-none focus:border-[#3e735e] focus:ring-4 focus:ring-[#3e735e]/10";
 
-export function ProductForm() {
+export function ProductForm({manufacturers,tags}:{manufacturers:Array<{id:string;name:string}>;tags:Array<{id:string;name:string;color:string}>}) {
   const [state, action, pending] = useActionState(createProduct, initialState);
   return (
     <details className="group rounded-2xl border border-black/8 bg-white shadow-[0_12px_35px_rgba(26,52,42,0.05)]">
@@ -19,6 +19,7 @@ export function ProductForm() {
       <form action={action} className="grid gap-4 border-t border-black/8 p-5 md:grid-cols-2 xl:grid-cols-4">
         <label className="md:col-span-2"><span className="mb-1.5 block text-sm font-semibold">Nombre *</span><input className={inputClass} name="name" required minLength={2} placeholder="Harina de trigo" /></label>
         <label><span className="mb-1.5 block text-sm font-semibold">Categoría</span><input className={inputClass} name="category" placeholder="Abarrotes" /></label>
+        <label><span className="mb-1.5 block text-sm font-semibold">Fabricante</span><select className={inputClass} name="manufacturerId"><option value="">Sin fabricante</option>{manufacturers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
         <label><span className="mb-1.5 block text-sm font-semibold">SKU</span><input className={inputClass} name="sku" placeholder="HAR-001" /></label>
         <label><span className="mb-1.5 block text-sm font-semibold">Código de barras</span><input className={inputClass} name="barcode" inputMode="numeric" /></label>
         <label><span className="mb-1.5 block text-sm font-semibold">Costo</span><input className={inputClass} name="cost" type="number" min="0" step="0.01" defaultValue="0" required /></label>
@@ -26,6 +27,7 @@ export function ProductForm() {
         <label><span className="mb-1.5 block text-sm font-semibold">Impuesto %</span><input className={inputClass} name="taxRate" type="number" min="0" max="100" step="0.01" defaultValue="0" required /></label>
         <label><span className="mb-1.5 block text-sm font-semibold">Existencia inicial</span><input className={inputClass} name="quantity" type="number" step="0.001" defaultValue="0" required /></label>
         <label><span className="mb-1.5 block text-sm font-semibold">Punto de reposición</span><input className={inputClass} name="reorderPoint" type="number" min="0" step="0.001" defaultValue="0" required /></label>
+        <fieldset className="md:col-span-2 xl:col-span-4"><legend className="mb-2 text-sm font-semibold">Etiquetas</legend><div className="flex flex-wrap gap-2">{tags.map(tag=><label key={tag.id} className="flex items-center gap-2 rounded-full border px-3 py-2 text-xs"><input type="checkbox" name="tagIds" value={tag.id}/><span className="size-2 rounded-full" style={{backgroundColor:tag.color}}/>{tag.name}</label>)}{!tags.length&&<span className="text-sm text-[#75837b]">Crea etiquetas desde Catálogos.</span>}</div></fieldset>
         <div className="flex items-end md:col-span-2 xl:col-span-3">
           {state.message && <p role="status" className={`text-sm font-semibold ${state.success ? "text-emerald-700" : "text-red-700"}`}>{state.message}</p>}
         </div>

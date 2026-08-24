@@ -11,6 +11,8 @@ const optionalCode = z.string().trim().max(80).transform((value) => value || nul
 const productSchema = z.object({
   name: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres.").max(160),
   category: z.string().trim().max(100).transform((value) => value || null),
+  manufacturerId: z.string().transform((value)=>value||null).pipe(z.uuid().nullable()),
+  tagIds: z.array(z.uuid()).max(50),
   sku: optionalCode,
   barcode: optionalCode,
   cost: z.coerce.number().min(0, "El costo no puede ser negativo."),
@@ -26,7 +28,7 @@ export async function createProduct(
   formData: FormData,
 ): Promise<InventoryActionState> {
   const parsed = productSchema.safeParse({
-    name: formData.get("name"), category: formData.get("category"), sku: formData.get("sku"),
+    name: formData.get("name"), category: formData.get("category"), manufacturerId: formData.get("manufacturerId")??"", tagIds: formData.getAll("tagIds"), sku: formData.get("sku"),
     barcode: formData.get("barcode"), cost: formData.get("cost"), price: formData.get("price"),
     taxRate: formData.get("taxRate"), quantity: formData.get("quantity"), reorderPoint: formData.get("reorderPoint"),
   });
@@ -34,7 +36,7 @@ export async function createProduct(
 
   const context = await getOrganizationContext();
   if (!canManageInventory(context.role)) return { message: "No tienes permiso para crear productos." };
-  const { error } = await context.supabase.rpc("create_inventory_product", {
+  const { error } = await context.supabase.rpc("create_catalog_product", {
     p_organization_id: context.organization.id,
     p_location_id: context.location.id,
     p_name: parsed.data.name,
@@ -46,6 +48,8 @@ export async function createProduct(
     p_tax_rate: parsed.data.taxRate / 100,
     p_quantity: parsed.data.quantity,
     p_reorder_point: parsed.data.reorderPoint,
+    p_manufacturer_id: parsed.data.manufacturerId,
+    p_tag_ids: parsed.data.tagIds,
   });
   if (error) {
     if (error.code === "23505") return { message: "El SKU, código de barras o categoría ya está registrado." };
@@ -86,19 +90,21 @@ export async function updateStock(formData: FormData) {
 export async function updateProduct(formData: FormData) {
   const id = z.uuid().safeParse(formData.get("productId"));
   const parsed = productDetailsSchema.safeParse({
-    name: formData.get("name"), category: formData.get("category"), sku: formData.get("sku"),
+    name: formData.get("name"), category: formData.get("category"), manufacturerId: formData.get("manufacturerId")??"", tagIds: formData.getAll("tagIds"), sku: formData.get("sku"),
     barcode: formData.get("barcode"), cost: formData.get("cost"), price: formData.get("price"),
     taxRate: formData.get("taxRate"),
   });
   if (!id.success || !parsed.success) redirect("/inventario?error=invalid-product");
   const context = await getOrganizationContext();
   if (!canManageInventory(context.role)) redirect("/inventario?error=permissions");
-  const { error } = await context.supabase.rpc("update_inventory_product", {
+  const { error } = await context.supabase.rpc("update_catalog_product", {
     p_product_id: id.data, p_organization_id: context.organization.id,
     p_name: parsed.data.name, p_category_name: parsed.data.category,
     p_sku: parsed.data.sku, p_barcode: parsed.data.barcode,
     p_cost: parsed.data.cost, p_price: parsed.data.price,
     p_tax_rate: parsed.data.taxRate / 100,
+    p_manufacturer_id: parsed.data.manufacturerId,
+    p_tag_ids: parsed.data.tagIds,
   });
   if (error) redirect(`/inventario?error=${error.code === "23505" ? "duplicate-product" : "product"}`);
   revalidatePath("/inventario");
