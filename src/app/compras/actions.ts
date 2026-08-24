@@ -29,7 +29,7 @@ const purchaseSchema = z.object({
   reference: z.string().trim().max(100),
   paymentTerms: z.enum(["cash", "credit"]),
   items: z.string().transform((value, context) => { try { return JSON.parse(value) as unknown; } catch { context.addIssue({ code: "custom", message: "La recepción no es válida." }); return z.NEVER; } })
-    .pipe(z.array(z.object({ product_id: z.uuid(), quantity: z.number().positive(), unit_cost: z.number().nonnegative() })).min(1)),
+    .pipe(z.array(z.object({ product_id: z.uuid(),variant_id:z.uuid().nullable(), quantity: z.number().positive(), unit_cost: z.number().nonnegative() })).min(1)),
 });
 
 export async function receivePurchase(_state: PurchaseState, formData: FormData): Promise<PurchaseState> {
