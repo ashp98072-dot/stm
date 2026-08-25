@@ -5,7 +5,7 @@ import { Link2, Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { completeSale, type SaleActionState } from "./actions";
 
 type Relation={productId:string;type:"related"|"accessory"|"alternative";position:number};
-type Product = { id: string;variantId:string|null; name: string; sku: string | null; barcode: string | null; price: number; taxRate: number; quantity: number;categoryId:string|null;tagIds:string[];relations:Relation[] };
+type Product = { id: string;variantId:string|null; name: string; sku: string | null; barcode: string | null; price: number; taxRate: number; quantity: number;categoryId:string|null;tagIds:string[];relations:Relation[];imageUrl:string|null };
 type PriceRule={id:string;product_id:string|null;category_id:string|null;tag_id:string|null;adjustment:string;value:number;minimumQuantity:number;priority:number;starts_at:string|null;ends_at:string|null};
 type Customer = { id: string; name: string; taxId: string | null; availableCredit: number | null };
 type CartLine = Product & { cartQuantity: number };
@@ -46,6 +46,7 @@ export function SaleTerminal({ products, customers, priceRules, currency, initia
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((product) => (
             <button key={cartKey(product)} onClick={() => add(product)} disabled={product.quantity <= 0} className="rounded-2xl border border-black/8 bg-white p-4 text-left shadow-[0_8px_25px_rgba(26,52,42,0.04)] transition hover:-translate-y-0.5 hover:border-[#789589] disabled:cursor-not-allowed disabled:opacity-45">
+              {product.imageUrl&&<span role="img" aria-label={`Imagen de ${product.name}`} className="mb-3 block aspect-[16/9] w-full rounded-xl bg-[#edf0eb] bg-contain bg-center bg-no-repeat" style={{backgroundImage:`url(${JSON.stringify(product.imageUrl)})`}}/>}
               <p className="font-bold">{product.name}</p><p className="mt-1 text-xs text-[#76847c]">{product.sku || product.barcode || "Sin código"}</p>
               <div className="mt-5 flex items-end justify-between"><span className="text-lg font-bold">{currency} {rulePrice(product,1,priceRules).toFixed(2)}</span><span className={`text-xs font-semibold ${product.quantity > 0 ? "text-[#39705b]" : "text-red-700"}`}>Stock {product.quantity}</span></div>
             </button>

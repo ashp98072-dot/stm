@@ -9,7 +9,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   const allowed = canCreateSales(context.role);
   const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }, { data: creditMovements }, {data:priceRules,error:rulesError}] = await Promise.all([
     context.supabase.from("products")
-      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags!product_tags_organization_id_product_id_fkey(tag_id), product_relations!product_relations_organization_id_product_id_fkey(related_product_id,relation_type,position), inventory_levels(quantity, location_id), product_variants(id,name,sku,barcode,price,active,variant_inventory_levels(quantity,location_id)), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
+      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags!product_tags_organization_id_product_id_fkey(tag_id), product_relations!product_relations_organization_id_product_id_fkey(related_product_id,relation_type,position), product_images(storage_path,variant_id,position), inventory_levels(quantity, location_id), product_variants(id,name,sku,barcode,price,active,variant_inventory_levels(quantity,location_id)), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
       .eq("organization_id", context.organization.id).eq("active", true).order("name"),
     context.supabase.from("customers").select("id, first_name, last_name, company_name, tax_id, credit_limit")
       .eq("organization_id", context.organization.id).eq("active", true).order("first_name"),
@@ -28,15 +28,17 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
       const componentLevel = componentProduct?.inventory_levels?.find((item) => item.location_id === context.location.id);
       return Number(componentLevel?.quantity ?? 0) / Number(component.quantity);
     })))) : null;
+    const images=[...product.product_images].sort((a,b)=>a.position-b.position),baseImage=images.find(image=>image.variant_id===null),imageUrl=(path:string|undefined)=>path?context.supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl:null;
     const base = {
       id: product.id, name: product.name, sku: product.sku, barcode: product.barcode,
       price: Number(product.price), taxRate: Number(product.tax_rate),
       categoryId:product.category_id,tagIds:product.product_tags.map(tag=>tag.tag_id),
       relations:product.product_relations.map(relation=>({productId:relation.related_product_id,type:relation.relation_type,position:relation.position})),
+      imageUrl:imageUrl(baseImage?.storage_path),
       quantity: kitQuantity ?? (product.track_inventory ? Number(level?.quantity ?? 0) : 999999),
       variantId:null as string|null,
     },variants=kit?[]:product.product_variants.filter(variant=>variant.active).map(variant=>({
-      ...base,variantId:variant.id,name:`${product.name} · ${variant.name}`,sku:variant.sku??product.sku,barcode:variant.barcode??product.barcode,price:Number(variant.price??product.price),quantity:Number(variant.variant_inventory_levels.find(item=>item.location_id===context.location.id)?.quantity??0),
+      ...base,variantId:variant.id,name:`${product.name} · ${variant.name}`,sku:variant.sku??product.sku,barcode:variant.barcode??product.barcode,price:Number(variant.price??product.price),quantity:Number(variant.variant_inventory_levels.find(item=>item.location_id===context.location.id)?.quantity??0),imageUrl:imageUrl(images.find(image=>image.variant_id===variant.id)?.storage_path??baseImage?.storage_path),
     }));return [base,...variants];
   });
   const creditBalances = new Map<string, number>();
