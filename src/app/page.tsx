@@ -105,7 +105,7 @@ export default async function Home() {
           <div>
             <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#517064]">Panel general</p>
             <h1 className="text-4xl font-bold tracking-[-0.04em] sm:text-5xl">Buenos días.</h1>
-            <p className="mt-3 max-w-xl text-[#617069]">La nueva plataforma está lista para conectarse a Supabase e importar la información del sistema anterior.</p>
+            <p className="mt-3 max-w-xl text-[#617069]">Administra ventas, inventario, compras y finanzas en tiempo real desde esta sucursal.</p>
           </div>
           <Link href="/ventas" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#d7f36b] px-5 font-bold text-[#163f32] transition hover:-translate-y-0.5 hover:shadow-lg"><ShoppingCart size={18} /> Nueva venta</Link>
         </div>

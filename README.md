@@ -54,6 +54,14 @@ La migración `20260822130000_supplier_payables.sql` corrige la recepción trans
 
 La migración `20260822140000_purchase_voids.sql` permite anular recepciones, revertir existencias y ajustar deudas de proveedor con auditoría.
 
+Las migraciones posteriores incorporan devoluciones parciales, reportes financieros, alertas, exportaciones, catálogos avanzados, atributos, variantes, kits y reglas de precios. Las variantes mantienen existencias independientes por sucursal y funcionan en ventas, compras, devoluciones, transferencias, cotizaciones, kardex, reposición, valoración y reportes.
+
+La migración `20260825000000_quote_variants.sql` añade variantes a las cotizaciones y mantiene compatibilidad con las cotizaciones creadas anteriormente.
+
+## Estado operativo
+
+La fase operativa está desplegada en Vercel y usa Supabase como fuente de datos. Antes de publicar cambios, ejecuta `npm run lint` y `npm run build`. Toda migración nueva debe aplicarse en orden y probarse primero con una operación reversible en una organización de prueba.
+
 ## Seguridad
 
 No agregues `.env.local`, contraseñas ni claves de servicio al repositorio. Las políticas RLS separan los datos de cada organización.
