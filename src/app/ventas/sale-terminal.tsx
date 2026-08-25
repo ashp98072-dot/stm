@@ -1,10 +1,11 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { Link2, Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { completeSale, type SaleActionState } from "./actions";
 
-type Product = { id: string;variantId:string|null; name: string; sku: string | null; barcode: string | null; price: number; taxRate: number; quantity: number;categoryId:string|null;tagIds:string[] };
+type Relation={productId:string;type:"related"|"accessory"|"alternative";position:number};
+type Product = { id: string;variantId:string|null; name: string; sku: string | null; barcode: string | null; price: number; taxRate: number; quantity: number;categoryId:string|null;tagIds:string[];relations:Relation[] };
 type PriceRule={id:string;product_id:string|null;category_id:string|null;tag_id:string|null;adjustment:string;value:number;minimumQuantity:number;priority:number;starts_at:string|null;ends_at:string|null};
 type Customer = { id: string; name: string; taxId: string | null; availableCredit: number | null };
 type CartLine = Product & { cartQuantity: number };
@@ -36,6 +37,7 @@ export function SaleTerminal({ products, customers, priceRules, currency, initia
   const tax = cart.reduce((sum, item) => { const base = rulePrice(item,item.cartQuantity,priceRules) * item.cartQuantity; const lineDiscount = subtotal ? base * discount / subtotal : 0; return sum + (base - lineDiscount) * item.taxRate; }, 0);
   const total = subtotal - discount + tax;
   const change = paymentMethod === "cash" && received ? Math.max(0, Number(received) - total) : 0;
+  const suggestions=useMemo(()=>{const inCart=new Set(cart.map(item=>item.id)),seen=new Set<string>();return cart.flatMap(line=>line.relations).sort((a,b)=>a.position-b.position).flatMap(relation=>{if(inCart.has(relation.productId)||seen.has(relation.productId))return[];const product=products.find(item=>item.id===relation.productId&&item.variantId===null&&item.quantity>0);if(!product)return[];seen.add(product.id);return[{product,type:relation.type}];}).slice(0,4)},[cart,products]);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -58,6 +60,7 @@ export function SaleTerminal({ products, customers, priceRules, currency, initia
           {!cart.length && <p className="px-5 py-12 text-center text-sm text-[#7a8880]">Selecciona productos del catálogo.</p>}
           {cart.map((item) => {const unitPrice=rulePrice(item,item.cartQuantity,priceRules),key=cartKey(item);return <div key={key} className="p-4"><div className="flex justify-between gap-3"><div><p className="text-sm font-bold">{item.name}</p><p className="text-xs text-[#75837b]">{currency} {unitPrice.toFixed(2)} c/u{unitPrice!==item.price?" · regla aplicada":""}</p></div><button onClick={() => setCart((current) => current.filter((line) => cartKey(line) !== key))} aria-label={`Quitar ${item.name}`} className="text-red-700"><Trash2 size={16} /></button></div><div className="mt-3 flex items-center justify-between"><div className="flex items-center rounded-lg border border-black/10"><button onClick={() => changeQuantity(key, -1)} className="p-2"><Minus size={14} /></button><span className="min-w-9 text-center text-sm font-bold">{item.cartQuantity}</span><button onClick={() => changeQuantity(key, 1)} className="p-2"><Plus size={14} /></button></div><span className="font-bold">{currency} {(unitPrice * item.cartQuantity * (1 + item.taxRate)).toFixed(2)}</span></div></div>})}
         </div>
+        {!!suggestions.length&&<section className="border-t border-black/8 bg-[#f7f9f5] p-4"><h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#517064]"><Link2 size={14}/>También puede interesar</h3><div className="mt-3 grid gap-2">{suggestions.map(({product,type})=><button key={product.id} type="button" onClick={()=>add(product)} className="flex items-center justify-between rounded-lg border border-black/8 bg-white px-3 py-2 text-left text-sm hover:border-[#789589]"><span><strong>{product.name}</strong><small className="block text-[#75837b]">{relationLabel(type)}</small></span><span className="font-bold">+ {currency} {rulePrice(product,1,priceRules).toFixed(2)}</span></button>)}</div></section>}
         <form action={action} className="space-y-4 border-t border-black/8 p-5">
           <input type="hidden" name="items" value={JSON.stringify(cart.map((item) => ({ product_id: item.id,variant_id:item.variantId, quantity: item.cartQuantity })))} />
           <input type="hidden" name="quoteId" value={quoteId} />
@@ -76,3 +79,4 @@ export function SaleTerminal({ products, customers, priceRules, currency, initia
 
 function rulePrice(product:Product,quantity:number,rules:PriceRule[]){if(product.variantId)return product.price;const now=Date.now(),rule=rules.find(item=>item.minimumQuantity<=quantity&&(!item.starts_at||new Date(item.starts_at).getTime()<=now)&&(!item.ends_at||new Date(item.ends_at).getTime()>now)&&(item.product_id===product.id||item.category_id===product.categoryId||(item.tag_id!==null&&product.tagIds.includes(item.tag_id))||(!item.product_id&&!item.category_id&&!item.tag_id)));if(!rule)return product.price;const price=rule.adjustment==="percent_discount"?product.price*(1-rule.value/100):rule.adjustment==="fixed_discount"?product.price-rule.value:rule.value;return Math.max(0,Math.round(price*100)/100)}
 function cartKey(product:Pick<Product,"id"|"variantId">){return `${product.id}:${product.variantId??"base"}`}
+function relationLabel(type:Relation["type"]){return type==="accessory"?"Accesorio":type==="alternative"?"Alternativa":"Relacionado"}

@@ -9,7 +9,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   const allowed = canCreateSales(context.role);
   const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }, { data: creditMovements }, {data:priceRules,error:rulesError}] = await Promise.all([
     context.supabase.from("products")
-      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags!product_tags_organization_id_product_id_fkey(tag_id), inventory_levels(quantity, location_id), product_variants(id,name,sku,barcode,price,active,variant_inventory_levels(quantity,location_id)), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
+      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags!product_tags_organization_id_product_id_fkey(tag_id), product_relations!product_relations_organization_id_product_id_fkey(related_product_id,relation_type,position), inventory_levels(quantity, location_id), product_variants(id,name,sku,barcode,price,active,variant_inventory_levels(quantity,location_id)), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
       .eq("organization_id", context.organization.id).eq("active", true).order("name"),
     context.supabase.from("customers").select("id, first_name, last_name, company_name, tax_id, credit_limit")
       .eq("organization_id", context.organization.id).eq("active", true).order("first_name"),
@@ -32,6 +32,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
       id: product.id, name: product.name, sku: product.sku, barcode: product.barcode,
       price: Number(product.price), taxRate: Number(product.tax_rate),
       categoryId:product.category_id,tagIds:product.product_tags.map(tag=>tag.tag_id),
+      relations:product.product_relations.map(relation=>({productId:relation.related_product_id,type:relation.relation_type,position:relation.position})),
       quantity: kitQuantity ?? (product.track_inventory ? Number(level?.quantity ?? 0) : 999999),
       variantId:null as string|null,
     },variants=kit?[]:product.product_variants.filter(variant=>variant.active).map(variant=>({
