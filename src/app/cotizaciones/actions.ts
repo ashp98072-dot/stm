@@ -37,7 +37,7 @@ export async function createQuote(
       .pipe(
         z
           .array(
-            z.object({ product_id: z.uuid(), quantity: z.number().positive() }),
+            z.object({ product_id: z.uuid(), variant_id: z.uuid().nullable().optional(), quantity: z.number().positive() }),
           )
           .min(1),
       ),
