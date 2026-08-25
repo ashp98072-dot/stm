@@ -9,7 +9,7 @@ export default async function SalesPage({ searchParams }: PageProps<"/ventas">) 
   const allowed = canCreateSales(context.role);
   const [{ data: rawProducts, error: productsError }, { data: rawCustomers }, { data: recentSales }, { data: creditMovements }, {data:priceRules,error:rulesError}] = await Promise.all([
     context.supabase.from("products")
-      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags(tag_id), inventory_levels(quantity, location_id), product_variants(id,name,sku,barcode,price,active,variant_inventory_levels(quantity,location_id)), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
+      .select("id, name, sku, barcode, price, tax_rate, track_inventory, category_id, product_tags!product_tags_organization_id_product_id_fkey(tag_id), inventory_levels(quantity, location_id), product_variants(id,name,sku,barcode,price,active,variant_inventory_levels(quantity,location_id)), product_kits(id, active, product_kit_items(quantity, product:products(inventory_levels(quantity, location_id))))")
       .eq("organization_id", context.organization.id).eq("active", true).order("name"),
     context.supabase.from("customers").select("id, first_name, last_name, company_name, tax_id, credit_limit")
       .eq("organization_id", context.organization.id).eq("active", true).order("first_name"),

@@ -17,7 +17,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   const safeQuery = query.replace(/[,().%_]/g, " ").trim();
   let productsQuery = context.supabase
     .from("products")
-    .select("id, name, sku, barcode, cost, price, tax_rate, active, manufacturer_id, category:categories(name), manufacturer:manufacturers(name), product_tags(tag_id), inventory_levels(quantity, reorder_point, location_id)")
+    .select("id, name, sku, barcode, cost, price, tax_rate, active, manufacturer_id, category:categories(name), manufacturer:manufacturers(name), product_tags!product_tags_organization_id_product_id_fkey(tag_id), inventory_levels(quantity, reorder_point, location_id)")
     .eq("organization_id", context.organization.id)
     .eq("active", true)
     .order("name");
