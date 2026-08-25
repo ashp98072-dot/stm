@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, BadgePercent, Boxes, GitBranch, Images, PackagePlus, Search } from "lucide-react";
+import { ArrowLeft, BadgePercent, Boxes, GitBranch, Images, Link2, PackagePlus, Search } from "lucide-react";
 import { getOrganizationContext, canManageInventory } from "@/lib/auth/organization";
 import { ProductForm } from "./product-form";
 import { updateProduct, updateStock } from "./actions";
@@ -64,7 +64,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
             const reorderPoint = Number(level?.reorder_point ?? 0);
             return (
               <article key={product.id} className="grid gap-4 border-b border-black/8 px-5 py-4 last:border-0 md:grid-cols-[minmax(220px,2fr)_1fr_1fr_1fr_1.4fr] md:items-center">
-                <div><p className="font-bold">{product.name}</p><p className="mt-1 text-xs text-[#77847d]">{product.sku || "Sin SKU"}{product.barcode ? ` · ${product.barcode}` : ""}</p><div className="mt-2 flex gap-3"><Link href={`/inventario/${product.id}/variantes`} className="inline-flex items-center gap-1 text-xs font-bold text-[#285645] hover:underline"><GitBranch size={13}/>Variantes</Link><Link href={`/inventario/${product.id}/imagenes`} className="inline-flex items-center gap-1 text-xs font-bold text-[#285645] hover:underline"><Images size={13}/>Imágenes</Link></div></div>
+                <div><p className="font-bold">{product.name}</p><p className="mt-1 text-xs text-[#77847d]">{product.sku || "Sin SKU"}{product.barcode ? ` · ${product.barcode}` : ""}</p><div className="mt-2 flex flex-wrap gap-3"><Link href={`/inventario/${product.id}/variantes`} className="inline-flex items-center gap-1 text-xs font-bold text-[#285645] hover:underline"><GitBranch size={13}/>Variantes</Link><Link href={`/inventario/${product.id}/imagenes`} className="inline-flex items-center gap-1 text-xs font-bold text-[#285645] hover:underline"><Images size={13}/>Imágenes</Link><Link href={`/inventario/${product.id}/relacionados`} className="inline-flex items-center gap-1 text-xs font-bold text-[#285645] hover:underline"><Link2 size={13}/>Relacionados</Link></div></div>
                 <p className="text-sm text-[#596960]"><span className="mr-2 font-semibold md:hidden">Categoría:</span>{category || "Sin categoría"}{manufacturer ? <span className="mt-1 block text-xs text-[#7a867f]">{manufacturer}</span> : null}</p>
                 <p className="font-bold"><span className="mr-2 text-sm font-semibold md:hidden">Precio:</span>{currency} {Number(product.price).toFixed(2)}</p>
                 <p className={`font-bold ${quantity <= reorderPoint ? "text-amber-700" : "text-[#285645]"}`}><span className="mr-2 text-sm font-semibold text-[#17251f] md:hidden">Existencia:</span>{quantity}</p>
