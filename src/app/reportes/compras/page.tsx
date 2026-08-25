@@ -11,7 +11,7 @@ export default async function PurchaseReport({ searchParams }: PageProps<"/repor
   const from = typeof params.from === "string" && pattern.test(params.from) ? params.from : `${today.slice(0, 8)}01`;
   const to = typeof params.to === "string" && pattern.test(params.to) ? params.to : today;
   const [{ data: purchases, error }, { data: purchaseReturns }] = await Promise.all([context.supabase.from("purchases")
-    .select("id,reference,payment_terms,subtotal,tax_total,total,received_at,supplier:suppliers(id,name),purchase_items(product_id,product_name,sku,quantity,line_total)")
+    .select("id,reference,payment_terms,subtotal,tax_total,total,received_at,supplier:suppliers(id,name),purchase_items(product_id,variant_id,product_name,sku,quantity,line_total)")
     .eq("organization_id", context.organization.id).eq("location_id", context.location.id).eq("status", "received")
     .gte("received_at", `${from}T00:00:00-06:00`).lte("received_at", `${to}T23:59:59.999-06:00`).order("received_at", { ascending: false }).limit(500), context.supabase.from("purchase_returns").select("id,total,created_at,purchase:purchases(reference)").eq("organization_id",context.organization.id).eq("location_id",context.location.id).gte("created_at",`${from}T00:00:00-06:00`).lte("created_at",`${to}T23:59:59.999-06:00`).order("created_at",{ascending:false})]);
   if (error) throw new Error("No se pudo cargar el reporte de compras.");
@@ -22,8 +22,8 @@ export default async function PurchaseReport({ searchParams }: PageProps<"/repor
     const value = purchase.supplier as { id?: string; name?: string } | Array<{ id?: string; name?: string }> | null, supplier = Array.isArray(value) ? value[0] : value;
     const name = supplier?.name ?? "Sin proveedor", current = suppliers.get(name) ?? { id: supplier?.id ?? null, total: 0, count: 0 };
     suppliers.set(name, { ...current, total: current.total + Number(purchase.total), count: current.count + 1 });
-    (purchase.purchase_items as Array<{ product_id: string | null; product_name: string; sku: string | null; quantity: string | number; line_total: string | number }> ?? []).forEach((item) => {
-      const key = item.product_id ?? `${item.product_name}-${item.sku}`, existing = products.get(key) ?? { name: item.product_name, sku: item.sku, quantity: 0, total: 0 };
+    (purchase.purchase_items as Array<{ product_id: string | null; variant_id: string | null; product_name: string; sku: string | null; quantity: string | number; line_total: string | number }> ?? []).forEach((item) => {
+      const key = item.variant_id ? `${item.product_id}:variant:${item.variant_id}` : item.product_id ?? `${item.product_name}-${item.sku}`, existing = products.get(key) ?? { name: item.product_name, sku: item.sku, quantity: 0, total: 0 };
       products.set(key, { ...existing, quantity: existing.quantity + Number(item.quantity), total: existing.total + Number(item.line_total) });
     });
   });
