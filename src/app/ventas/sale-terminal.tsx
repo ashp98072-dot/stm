@@ -10,8 +10,8 @@ type Customer = { id: string; name: string; taxId: string | null; availableCredi
 type CartLine = Product & { cartQuantity: number };
 const initialState: SaleActionState = { message: "" };
 
-export function SaleTerminal({ products, customers, priceRules, currency, initialItems = [], initialCustomerId = "", quoteId = "" }: { products: Product[]; customers: Customer[];priceRules:PriceRule[]; currency: string; initialItems?: Array<{ productId:string; quantity:number }>; initialCustomerId?:string; quoteId?:string }) {
-  const [cart, setCart] = useState<CartLine[]>(() => initialItems.flatMap((initial) => { const product=products.find((item)=>item.id===initial.productId&&!item.variantId); return product ? [{...product,cartQuantity:Math.min(initial.quantity,product.quantity)}] : []; }));
+export function SaleTerminal({ products, customers, priceRules, currency, initialItems = [], initialCustomerId = "", quoteId = "" }: { products: Product[]; customers: Customer[];priceRules:PriceRule[]; currency: string; initialItems?: Array<{ productId:string; variantId:string|null; quantity:number }>; initialCustomerId?:string; quoteId?:string }) {
+  const [cart, setCart] = useState<CartLine[]>(() => initialItems.flatMap((initial) => { const product=products.find((item)=>item.id===initial.productId&&item.variantId===initial.variantId); return product ? [{...product,cartQuantity:Math.min(initial.quantity,product.quantity)}] : []; }));
   const [query, setQuery] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [received, setReceived] = useState("");
