@@ -60,11 +60,12 @@ export default async function Home() {
   const { supabase, user, organization, location, role } = await getOrganizationContext();
   const organizationId = organization.id;
   const startOfToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
-  const [productsResult, customersResult, salesResult, stockResult, returnsResult] = await Promise.all([
+  const [productsResult, customersResult, salesResult, stockResult, variantStockResult, returnsResult] = await Promise.all([
     supabase.from("products").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
     supabase.from("customers").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).eq("active", true),
     supabase.from("sales").select("total").eq("organization_id", organizationId).eq("location_id", location.id).eq("status", "completed").gte("completed_at", `${startOfToday}T00:00:00-06:00`),
     supabase.from("inventory_levels").select("quantity, reorder_point").eq("organization_id", organizationId).eq("location_id", location.id),
+    supabase.from("variant_inventory_levels").select("quantity, reorder_point").eq("organization_id", organizationId).eq("location_id", location.id),
     supabase.from("sale_returns").select("total").eq("organization_id", organizationId).eq("location_id", location.id).gte("created_at", `${startOfToday}T00:00:00-06:00`),
   ]);
 
@@ -75,7 +76,7 @@ export default async function Home() {
     { label: "Ventas de hoy", value: `${currency} ${salesTotal.toFixed(2)}`, detail: `${sales.length} transacciones`, icon: CircleDollarSign },
     { label: "Productos", value: String(productsResult.count ?? 0), detail: "Productos activos", icon: Boxes },
     { label: "Clientes", value: String(customersResult.count ?? 0), detail: "Clientes activos", icon: Users },
-    { label: "Stock bajo", value: String((stockResult.data ?? []).filter((level) => Number(level.quantity) <= Number(level.reorder_point)).length), detail: "Requieren atención", icon: PackageSearch },
+    { label: "Stock bajo", value: String([...stockResult.data ?? [], ...variantStockResult.data ?? []].filter((level) => Number(level.quantity) <= Number(level.reorder_point)).length), detail: "Productos y variantes", icon: PackageSearch },
   ];
   const accountLabel = user.email?.endsWith("@stm.internal")
     ? user.email.slice(0, -"@stm.internal".length)
