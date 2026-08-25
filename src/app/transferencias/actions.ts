@@ -9,7 +9,7 @@ const transferSchema = z.object({
   destinationLocationId: z.string().uuid(),
   reference: z.string().trim().max(100),
   notes: z.string().trim().max(500),
-  items: z.array(z.object({ product_id: z.string().uuid(), quantity: z.number().positive() })).min(1).max(100),
+  items: z.array(z.object({ product_id: z.string().uuid(),variant_id:z.string().uuid().nullable(), quantity: z.number().positive() })).min(1).max(100),
 }).refine((value) => value.sourceLocationId !== value.destinationLocationId, "Las sucursales deben ser diferentes.");
 
 export type TransferState = { message: string };
