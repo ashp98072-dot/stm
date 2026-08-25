@@ -18,11 +18,16 @@ export default async function AlertsPage() {
   nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
   const weekLimit = nextWeek.toISOString().slice(0, 10);
 
-  const [stockResult, quotesResult, customersResult, receivablesResult, suppliersResult, payablesResult] =
+  const [stockResult, variantStockResult, quotesResult, customersResult, receivablesResult, suppliersResult, payablesResult] =
     await Promise.all([
       context.supabase
         .from("inventory_levels")
         .select("quantity,reorder_point,product:products(id,name,sku)")
+        .eq("organization_id", context.organization.id)
+        .eq("location_id", context.location.id),
+      context.supabase
+        .from("variant_inventory_levels")
+        .select("quantity,reorder_point,variant:product_variants(id,name,sku,product:products(id,name,sku))")
         .eq("organization_id", context.organization.id)
         .eq("location_id", context.location.id),
       context.supabase
@@ -51,9 +56,19 @@ export default async function AlertsPage() {
         .eq("organization_id", context.organization.id),
     ]);
 
-  const stock = (stockResult.data ?? []).filter(
-    (level) => Number(level.quantity) <= Number(level.reorder_point),
-  );
+  const baseStock = (stockResult.data ?? []).map((level, index) => {
+    const value = level.product as { id?: string; name?: string; sku?: string } | Array<{ id?: string; name?: string; sku?: string }> | null;
+    const product = Array.isArray(value) ? value[0] : value;
+    return { key: `product-${product?.id ?? index}`, href: "/inventario", name: product?.name ?? "Producto", sku: product?.sku, quantity: Number(level.quantity), reorderPoint: Number(level.reorder_point) };
+  });
+  const variantStock = (variantStockResult.data ?? []).map((level, index) => {
+    const value = level.variant as { id?: string; name?: string; sku?: string; product?: { id?: string; name?: string; sku?: string } | Array<{ id?: string; name?: string; sku?: string }> } | Array<{ id?: string; name?: string; sku?: string; product?: { id?: string; name?: string; sku?: string } | Array<{ id?: string; name?: string; sku?: string }> }> | null;
+    const variant = Array.isArray(value) ? value[0] : value;
+    const productValue = variant?.product;
+    const product = Array.isArray(productValue) ? productValue[0] : productValue;
+    return { key: `variant-${variant?.id ?? index}`, href: product?.id ? `/inventario/${product.id}/variantes` : "/inventario", name: `${product?.name ?? "Producto"} · ${variant?.name ?? "Variante"}`, sku: variant?.sku || product?.sku, quantity: Number(level.quantity), reorderPoint: Number(level.reorder_point) };
+  });
+  const stock = [...baseStock, ...variantStock].filter((level) => level.quantity <= level.reorderPoint);
   const customerBalances = new Map<string, number>();
   const customerDueDates = new Map<string, string>();
   for (const movement of receivablesResult.data ?? []) {
@@ -117,11 +132,7 @@ export default async function AlertsPage() {
         <div><p className="text-sm font-bold uppercase tracking-[.18em] text-[#517064]">Seguimiento</p><h1 className="mt-2 text-4xl font-bold">Alertas operativas</h1><p className="mt-2 text-[#68766f]">{totalAlerts} asuntos requieren revisión.</p></div>
         <div className="grid gap-5 lg:grid-cols-2">
           <AlertSection title="Stock bajo" icon={Boxes} empty="El inventario está por encima de sus mínimos.">
-            {stock.map((level, index) => {
-              const value = level.product as { id?: string; name?: string; sku?: string } | Array<{ id?: string; name?: string; sku?: string }> | null;
-              const product = Array.isArray(value) ? value[0] : value;
-              return <Link href="/inventario" key={product?.id ?? index} className="flex justify-between border-b border-black/7 p-4 last:border-0"><span><strong>{product?.name ?? "Producto"}</strong><small className="block text-[#75837b]">{product?.sku ?? "Sin SKU"} · mínimo {Number(level.reorder_point)}</small></span><strong className="text-amber-700">{Number(level.quantity)}</strong></Link>;
-            })}
+            {stock.map((level) => <Link href={level.href} key={level.key} className="flex justify-between border-b border-black/7 p-4 last:border-0"><span><strong>{level.name}</strong><small className="block text-[#75837b]">{level.sku ?? "Sin SKU"} · mínimo {level.reorderPoint}</small></span><strong className="text-amber-700">{level.quantity}</strong></Link>)}
           </AlertSection>
           <AlertSection title="Cotizaciones por vencer" icon={FileClock} empty="No hay cotizaciones próximas a vencer.">
             {(quotesResult.data ?? []).map((quote) => <Link href={`/cotizaciones/${quote.id}`} key={quote.id} className="flex justify-between border-b border-black/7 p-4 last:border-0"><span><strong>{quote.quote_number}</strong><small className="block text-[#75837b]">{quote.valid_until! < today ? "Vencida" : "Vence"} · {quote.valid_until}</small></span><strong>{currency} {Number(quote.total).toFixed(2)}</strong></Link>)}

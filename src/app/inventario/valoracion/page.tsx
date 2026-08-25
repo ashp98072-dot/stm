@@ -6,14 +6,15 @@ export default async function InventoryValuationPage() {
   const context = await getOrganizationContext();
   if (!["owner", "admin", "manager", "inventory", "viewer"].includes(context.role)) return <main>Acceso restringido</main>;
   const { data: products, error } = await context.supabase.from("products")
-    .select("id,name,sku,cost,price,active,category:categories(name),inventory_levels(quantity,reorder_point,location_id)")
+    .select("id,name,sku,cost,price,active,category:categories(name),inventory_levels(quantity,reorder_point,location_id),product_variants(id,name,sku,cost,price,active,variant_inventory_levels(quantity,reorder_point,location_id))")
     .eq("organization_id", context.organization.id).eq("active", true).order("name");
   if (error) throw new Error("No se pudo valorar el inventario.");
-  const rows = (products ?? []).map((product) => {
+  const rows = (products ?? []).flatMap((product) => {
     const level = (product.inventory_levels as Array<{ quantity: string | number; reorder_point: string | number; location_id: string }> ?? []).find((item) => item.location_id === context.location.id);
     const categoryValue = product.category as { name?: string } | Array<{ name?: string }> | null;
-    const quantity = Number(level?.quantity ?? 0), cost = Number(product.cost), price = Number(product.price);
-    return { id: product.id, name: product.name, sku: product.sku, category: (Array.isArray(categoryValue) ? categoryValue[0]?.name : categoryValue?.name) ?? "Sin categoría", quantity, reorderPoint: Number(level?.reorder_point ?? 0), cost, price, costValue: quantity * cost, saleValue: quantity * price };
+    const category = (Array.isArray(categoryValue) ? categoryValue[0]?.name : categoryValue?.name) ?? "Sin categoría";
+    const candidates = [{ id: `product-${product.id}`, name: product.name, sku: product.sku, cost: Number(product.cost), price: Number(product.price), level }, ...((product.product_variants as Array<{ id:string; name:string; sku:string|null; cost:string|number|null; price:string|number|null; active:boolean; variant_inventory_levels:Array<{ quantity:string|number; reorder_point:string|number; location_id:string }> }> ?? []).filter((variant) => variant.active).map((variant) => ({ id: `variant-${variant.id}`, name: `${product.name} · ${variant.name}`, sku: variant.sku || product.sku, cost: Number(variant.cost ?? product.cost), price: Number(variant.price ?? product.price), level: (variant.variant_inventory_levels ?? []).find((item) => item.location_id === context.location.id) })))];
+    return candidates.map((candidate) => { const quantity = Number(candidate.level?.quantity ?? 0); return { ...candidate, category, quantity, reorderPoint: Number(candidate.level?.reorder_point ?? 0), costValue: quantity * candidate.cost, saleValue: quantity * candidate.price }; });
   });
   const costValue = rows.reduce((sum, row) => sum + row.costValue, 0), saleValue = rows.reduce((sum, row) => sum + row.saleValue, 0), potentialMargin = saleValue - costValue;
   const lowStock = rows.filter((row) => row.quantity <= row.reorderPoint).length, outOfStock = rows.filter((row) => row.quantity <= 0).length;
